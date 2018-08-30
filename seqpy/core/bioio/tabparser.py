@@ -43,7 +43,11 @@ class GenotypeLineParser(object):
 
     def __init__(self, args):
 
-        self.infile = open(args.infile)
+        if args.infile.endswith('.gz'):
+            import gzip
+            self.infile = gzip.open( args.infile, 'rt' )
+        else:
+            self.infile = open(args.infile)
         self.posfile = open(args.posfile)
 
         if not (args.groupfile or args.metafile):
@@ -133,3 +137,20 @@ class GenotypeLineParser(object):
 
     def translate(self, tokens):
         return [ self.translator[k] for k in tokens ]
+
+
+    def parse_all(self):
+        """ this return a full array from the data
+            as such, ensure that the memory is big enough before calling this method
+        """
+        M = []
+        for (idx, line) in enumerate(self.infile):
+            tokens = line.split()
+
+            if len(tokens) != len(self.samples):
+                cexit('E: genotype file does not match sample number at line %d' % idx)
+
+            M.append( self.translate(tokens) )
+
+        return M
+
