@@ -58,6 +58,7 @@ class GenotypeLineParser(object):
         self.delimiter = ( ',' if args.metafile[-3:].lower() == 'csv' else '\t' ) if args.metafile else None
         self.column = args.column
         self.groups = {}
+        self.position = None
 
 
     def parse_grouping(self):
@@ -139,12 +140,15 @@ class GenotypeLineParser(object):
         return [ self.translator[k] for k in tokens ]
 
 
-    def parse_all(self):
+    def parse_all(self, maxline=-1):
         """ this return a full array from the data
             as such, ensure that the memory is big enough before calling this method
         """
         M = []
         for (idx, line) in enumerate(self.infile):
+            if maxline > 0 and idx > maxline:
+                break
+
             tokens = line.split()
 
             if len(tokens) != len(self.samples):
@@ -152,5 +156,20 @@ class GenotypeLineParser(object):
 
             M.append( self.translate(tokens) )
 
+        self.parse_position(maxline)
         return M
+
+    def parse_position(self, maxline):
+
+        self.position = []
+        for line in self.posfile:
+            self.position.append( line.strip().split() )
+
+        return self.position
+
+    def get_sample_header(self, bytestring=False):
+        header = '\t'.join( self.samples )
+        if bytestring:
+            return header.encode('UTF-8')
+        return header
 
