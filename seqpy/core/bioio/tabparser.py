@@ -146,7 +146,7 @@ class GenotypeLineParser(object):
         """
         M = []
         for (idx, line) in enumerate(self.infile):
-            if maxline > 0 and idx > maxline:
+            if maxline > 0 and idx >= maxline:
                 break
 
             tokens = line.split()
@@ -173,3 +173,23 @@ class GenotypeLineParser(object):
             return header.encode('UTF-8')
         return header
 
+
+    def parse_haplotypes(self, maxline=-1):
+        """ this return a list like the following:
+        [   '0000022020',
+            '0002020000' ]
+        """
+
+        M = []
+        for (idx, line) in enumerate(self.infile):
+            if maxline > 0 and idx >= maxline:
+                break
+
+            tokens = line.split()
+
+            M.append( x[0] for x in tokens )
+
+        # do transpose
+        M_t = [ *zip( *M) ]
+        H = [ ''.join( x ).encode('UTF-8') for x in M_t ]
+        return H
