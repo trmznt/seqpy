@@ -34,7 +34,8 @@ class GroupParser(object):
         self.metafile = open(args.metafile) if args.metafile else None
         self.delimiter = ( ',' if args.metafile[-3:].lower() == 'csv' else '\t' ) if args.metafile else None
         self.column = args.column
-        self.groups = {}
+        self.group_info = {}        # { 'indv1': 'grp1', 'indv2': 'grp1', ...}
+        self.groups = {}            # { 'grp1': [ 'indv1', 'indv2', ...], ...}
         self.group_colours = {}
 
 
@@ -95,3 +96,12 @@ class GroupParser(object):
         for k in sorted(self.groups.keys()):
             self.group_colours[k] = next(colour_wheel)
         return self.groups
+
+    def colour_list(self):
+        """ return colour list based on samples """
+        colours = []
+        for s in self.samples:
+            grp_key = self.group_info[s]
+            colours.append( self.group_colours[grp_key] )
+
+        return colours
