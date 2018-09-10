@@ -22,6 +22,7 @@ def init_argparser(p=None):
     p.add_argument('--metafile', default='')
     p.add_argument('--column', default='1,2')
     p.add_argument('--posfile', required=True)
+    p.add_argument('--includepos', default='')
     p.add_argument('--infile')
 
     return p
@@ -59,6 +60,15 @@ class GenotypeLineParser(object):
         self.column = args.column
         self.groups = {}
         self.position = None
+        self.posfile_header = None
+
+        self.include_positions = {}
+        if args.includepos:
+            with open(args.includepos) as infile:
+                next(infile)
+                for line in infile:
+                    tokens = line.split()
+                    self.include_positions[ (tokens[0], tokens[1]) ] = True
 
 
     def parse_grouping(self):
@@ -96,7 +106,7 @@ class GenotypeLineParser(object):
 
         # read the header of genotype and posfile
         header = next(self.infile)
-        next(self.posfile)
+        self.posfile_header = next(self.posfile)
         samples = header.strip().split('\t')
         cerr('I: reading %s samples from genotype file')
         groups = {}
@@ -159,6 +169,18 @@ class GenotypeLineParser(object):
         self.parse_position(maxline)
         return M
 
+
+    def parse_raw_lines(self, maxline=-1):
+        """ this is a generator, returning (posline, genoline)
+        """
+
+        for (idx, paired_line) in enumerate( zip(self.posfile, self.infile)):
+            if maxline > 0 and idx >= maxline:
+                break
+
+            yield( paired_line )
+
+
     def parse_position(self, maxline):
 
         self.position = []
@@ -181,13 +203,20 @@ class GenotypeLineParser(object):
         """
 
         M = []
-        for (idx, line) in enumerate(self.infile):
+        for (idx, paired_line) in enumerate( zip(self.posfile, self.infile) ):
             if maxline > 0 and idx >= maxline:
                 break
 
-            tokens = line.split()
+            posline, genoline = paired_line
+            if self.include_positions:
+                posinfo = posline.split()
+                if (posinfo[0], posinfo[1]) not in self.include_positions:
+                    continue
+            tokens = genoline.split()
 
             M.append( x[0] for x in tokens )
+
+        cerr('I: reading %d SNP positions' % len(M))
 
         # do transpose
         M_t = [ *zip( *M) ]
