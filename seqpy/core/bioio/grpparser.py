@@ -21,8 +21,23 @@ def init_argparser(p=None):
 
     return p
 
+# TODO: need to provide mechanism to select colour scheme
+
+# 12 colours from ColorBrewer2
 colour_list = [ '#1f78b4','#33a02c','#e31a1c','#ff7f00','#6a3d9a','#b15928',
                 '#a6cee3','#b2df8a','#fb9a99','#fdbf6f','#cab2d6','#ffff99']
+
+# 20 colours from Vega
+colour_list = [ "#1f77b4", "#aec7e8", "#ff7f0e", "#ffbb78", "#2ca02c", "#98df8a",
+                "#d62728", "#ff9896", "#9467bd", "#c5b0d5", "#8c564b", "#c49c94",
+                "#e377c2", "#f7b6d2", "#7f7f7f", "#c7c7c7", "#bcbd22", "#dbdb8d",
+                "#17becf", "#9edae5" ]
+
+# 20 colours from IWantHue
+colour_list = [ "#7ebbc7", "#6d38c0", "#72dc59", "#cc4dc4", "#cfd94a", "#6f68c9",
+                "#649a40", "#c2477b", "#68d5a9", "#cd3f41", "#637dac", "#dc6931",
+                "#4d285e", "#bf953c", "#cc9acd", "#536840", "#74372c", "#c9d19d",
+                "#363638", "#c69085"]
 
 class GroupParser(object):
 
@@ -78,6 +93,9 @@ class GroupParser(object):
 
     def assign_groups(self, samples):
 
+        if not self.group_info:
+            self.parse()
+
         groups = {}
         sample_idx = []
         for idx, code in enumerate(samples):
@@ -95,13 +113,29 @@ class GroupParser(object):
         colour_wheel = cycle(colour_list)
         for k in sorted(self.groups.keys()):
             self.group_colours[k] = next(colour_wheel)
+
+        if len(self.groups.keys()) > len(colour_list):
+            cerr("W: warning, no of groups exceeds available colour list!")
+
         return self.groups
 
-    def colour_list(self):
+    def colour_list(self, samples = None):
         """ return colour list based on samples """
         colours = []
-        for s in self.samples:
+        samples = samples or self.samples
+
+        for s in samples:
             grp_key = self.group_info[s]
             colours.append( self.group_colours[grp_key] )
+
+        return colours
+
+
+    def group_colour_list(self, groups):
+        """ return colour list based on groups """
+        colours = []
+
+        for g in groups:
+            colours.append( self.group_colours[g] )
 
         return colours
