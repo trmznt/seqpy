@@ -28,6 +28,10 @@ def cout( text ):
 def cerr( text ):
     _cerr( text )
 
+def cexit( text, err=1);
+	_cerr( text )
+	sys.exit(err)
+
 def set_cout(func):
     global _cout
     _cout = func
