@@ -181,7 +181,7 @@ class GenotypeLineParser(object):
             yield( paired_line )
 
 
-    def parse_position(self, maxline):
+    def parse_position(self, maxline=-1):
 
         self.position = []
         for line in self.posfile:
@@ -222,3 +222,50 @@ class GenotypeLineParser(object):
         M_t = [ *zip( *M) ]
         H = [ ''.join( x ).encode('UTF-8') for x in M_t ]
         return H
+
+    def parse_np_haplotypes(self, maxline=-1):
+        """ this return a numpy array haplotypes
+        [   [0, 0, 0, 0, 2, 2, 0, 2, 0],
+            [0, 0, 0, 2, 0, 0, -1, -0. -1] ]
+        """
+
+        token2value = { '0': 0, '1': 1, '2': 2, '-': -1}
+
+        S = len(self.samples)
+
+        if self.include_positions:
+            M = np.zeros( (S, len(self.include_positions)), np.int8 )
+
+            l = 0
+            for (idx, paired_line) in enumerate( zip(self.posfile, self.infile) ):
+                posline, genoline = paired_line
+                posinfo = posline.split()
+                if (posinfo[0], posinfo[1]) in self.include_positions:
+                    tokens = genoline.split()
+                    if len(tokens) != S:
+                        cexit('E: inconsistent number of samples!')
+
+                    for i in range(S):
+                        M[i, l] = token2value[ tokens[i][0] ]
+
+                    l += 1
+
+        else:
+            # we need to parse positions first
+            positions = self.parse_position()
+            L = maxline if maxline > 0 else len(positions)
+            M = np.zeros( (len(S), L), np.int8 )
+
+            for (idx, genoline) in enumerate(self.infile):
+                if idx >= L:
+                    break
+
+                tokens = genoline.split()
+                if len(tokens) != S:
+                    raise RuntimeError('E: inconsistent number of samples!')
+
+                for i in range(S):
+                    M[i, idx] = token2value[ tokens[i][0] ]
+
+
+        return M
