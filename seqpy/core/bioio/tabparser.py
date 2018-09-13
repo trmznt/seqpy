@@ -3,6 +3,8 @@
 from seqpy import cout, cerr
 from seqpy.cmds import arg_parser
 
+from seqpy.core.bioio import grpparser
+
 import numpy as numpy
 import pandas
 
@@ -18,12 +20,11 @@ def init_argparser(p=None):
     if p is None:
         p = arg_parser('Genotype file parser')
 
-    p.add_argument('--groupfile', default='')
-    p.add_argument('--metafile', default='')
-    p.add_argument('--column', default='1,2')
+    p = grpparser.init_argparser( p )
+
     p.add_argument('--posfile', required=True)
     p.add_argument('--includepos', default='')
-    p.add_argument('--infile')
+    p.add_argument('infile')
 
     return p
 
@@ -44,21 +45,9 @@ class GenotypeLineParser(object):
 
     def __init__(self, args):
 
-        if args.infile.endswith('.gz'):
-            import gzip
-            self.infile = gzip.open( args.infile, 'rt' )
-        else:
-            self.infile = open(args.infile)
-        self.posfile = open(args.posfile)
 
-        if not (args.groupfile or args.metafile):
-            cexit('E: required either --groupfile or --metafile')
-
-        self.groupfile = open(args.groupfile) if args.groupfile else None
-        self.metafile = open(args.metafile) if args.metafile else None
-        self.delimiter = ( ',' if args.metafile[-3:].lower() == 'csv' else '\t' ) if args.metafile else None
-        self.column = args.column
-        self.groups = {}
+        self.group_parser = grpparser.GroupParser( args )
+        self.infile = gzopen(args.infile, 'rt')
         self.position = None
         self.posfile_header = None
 
