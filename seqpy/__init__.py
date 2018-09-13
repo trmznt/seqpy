@@ -29,8 +29,8 @@ def cerr( text ):
     _cerr( text )
 
 def cexit( text, err=1);
-	_cerr( text )
-	sys.exit(err)
+    _cerr( text )
+    sys.exit(err)
 
 def set_cout(func):
     global _cout
@@ -40,3 +40,10 @@ def set_cerr(func):
     global _cerr
     _cerr = func
 
+def gzopen(filename, options='rt'):
+
+    if filename.endswith('.gz'):
+        import gzip
+        return gzip.open( filename, options )
+    else:
+        return open( filename, options )
