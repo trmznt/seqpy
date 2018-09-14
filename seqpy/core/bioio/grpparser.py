@@ -17,6 +17,7 @@ def init_argparser(p=None):
 
     p.add_argument('--groupfile', default='')
     p.add_argument('--metafile', default='')
+    p.add_argument('--colourfile', default='')
     p.add_argument('--column', default='1,2')
 
     return p
@@ -47,6 +48,7 @@ class GroupParser(object):
 
         self.groupfile = open(args.groupfile) if args.groupfile else None
         self.metafile = open(args.metafile) if args.metafile else None
+        self.colourfile = open(args.colourfile) if args.colourfile else None
         self.delimiter = ( ',' if args.metafile[-3:].lower() == 'csv' else '\t' ) if args.metafile else None
         self.column = args.column
         self.group_info = {}        # { 'indv1': 'grp1', 'indv2': 'grp1', ...}
@@ -110,12 +112,28 @@ class GroupParser(object):
         self.sample_idx = set(sample_idx)
         self.groups = groups
 
-        colour_wheel = cycle(colour_list)
-        for k in sorted(self.groups.keys()):
-            self.group_colours[k] = next(colour_wheel)
+        if self.colourfile:
+            # parse colour file
+            self.colourfile.seek(0)
+            next(self.colourfile)
+            for line in self.colourfile:
+                tokens = line.strip().split()
+                self.group_colours[tokens[0]] = tokens[1]
 
-        if len(self.groups.keys()) > len(colour_list):
-            cerr("W: warning, no of groups exceeds available colour list!")
+            # checking whether all groups has been assigned with colours
+            for k in self.groups:
+                if k not in self.group_colours:
+                    cexit('E: group %s is not assigned' % k)
+
+            cerr('I: assigning manual colours to %d groups' % (len(self.group_colours)))
+
+        else:
+            colour_wheel = cycle(colour_list)
+            for k in sorted(self.groups.keys()):
+                self.group_colours[k] = next(colour_wheel)
+
+            if len(self.groups.keys()) > len(colour_list):
+                cerr("W: warning, no of groups exceeds available colour list!")
 
         return self.groups
 
