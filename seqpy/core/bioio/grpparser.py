@@ -117,7 +117,7 @@ class GroupParser(object):
             self.colourfile.seek(0)
             next(self.colourfile)
             for line in self.colourfile:
-                tokens = line.strip().split()
+                tokens = line.strip().split('\t')
                 self.group_colours[tokens[0]] = tokens[1]
 
             # checking whether all groups has been assigned with colours
