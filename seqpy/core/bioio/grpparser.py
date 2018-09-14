@@ -1,6 +1,6 @@
 
 
-from seqpy import cout, cerr
+from seqpy import cout, cerr, cexit
 from seqpy.cmds import arg_parser
 
 from itertools import cycle
