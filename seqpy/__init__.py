@@ -28,7 +28,7 @@ def cout( text ):
 def cerr( text ):
     _cerr( text )
 
-def cexit( text, err=1);
+def cexit( text, err=1):
     _cerr( text )
     sys.exit(err)
 
