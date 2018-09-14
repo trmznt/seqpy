@@ -1,6 +1,6 @@
 # tabparser
 
-from seqpy import cout, cerr
+from seqpy import cout, cerr, cexit, gzopen
 from seqpy.cmds import arg_parser
 
 from seqpy.core.bioio import grpparser
@@ -22,7 +22,7 @@ def init_argparser(p=None):
 
     p = grpparser.init_argparser( p )
 
-    p.add_argument('--posfile', required=True)
+    p.add_argument('--posfile', default=None)
     p.add_argument('--includepos', default='')
     p.add_argument('infile')
 
@@ -48,19 +48,53 @@ class GenotypeLineParser(object):
 
         self.group_parser = grpparser.GroupParser( args )
         self.infile = gzopen(args.infile, 'rt')
+        self.posfilename = args.posfile
         self.position = None
         self.posfile_header = None
+        self.posfile = None
+        self.sample_header = None
+        self.samples = None
 
+        # read included positions
         self.include_positions = {}
         if args.includepos:
             with open(args.includepos) as infile:
                 next(infile)
                 for line in infile:
-                    tokens = line.split()
+                    tokens = line.strip().split()
                     self.include_positions[ (tokens[0], tokens[1]) ] = True
+
+        # need to read header of genotype
+        self.parse_sample()
+
+
+    def parse_sample(self):
+        if not self.samples:
+            self.infile.seek(0)
+            self.sample_header = next(self.infile).strip()
+            self.samples = self.sample_header.split('\t')
+        return self.samples
+
+
+    def parse_position_header(self):
+        if not self.posfilename:
+            cexit('E: need --posfile')
+        self.posfile = gzopen(self.posfilename)
+        self.posfile_header = next(self.posfile).strip()
 
 
     def parse_grouping(self):
+
+        # assign samples to group
+        samples = self.parse_sample()
+        groups = self.group_parser.assign_groups( samples )
+        return groups
+
+    @property
+    def sample_idx(self):
+        return self.group_parser.sample_idx
+
+    def parse_grouping_XXX(self):
 
         # create a dictionary of groups <> sample_idx
         if self.groupfile:
@@ -117,6 +151,8 @@ class GenotypeLineParser(object):
     def parse(self):
         """ this is a generator, returning (pos_info, geno_array) """
 
+        if not self.posfile:
+            self.parse_position_header()
 
         for (idx, paired_line) in enumerate( zip(self.posfile, self.infile)):
             pos_line, geno_line = paired_line
@@ -160,8 +196,11 @@ class GenotypeLineParser(object):
 
 
     def parse_raw_lines(self, maxline=-1):
-        """ this is a generator, returning (posline, genoline)
+        """ this is a generator, returning (posline, genoline) including new lines
         """
+
+        if not self.posfile:
+            self.parse_position_header()
 
         for (idx, paired_line) in enumerate( zip(self.posfile, self.infile)):
             if maxline > 0 and idx >= maxline:
@@ -172,6 +211,9 @@ class GenotypeLineParser(object):
 
     def parse_position(self, maxline=-1):
 
+        if not self.posfile_header:
+            self.parse_position_header()
+
         self.position = []
         for line in self.posfile:
             self.position.append( line.strip().split() )
@@ -179,10 +221,17 @@ class GenotypeLineParser(object):
         return self.position
 
     def get_sample_header(self, bytestring=False):
+        if not self.samples:
+            cexit('E: need to parse sample header first')
         header = '\t'.join( self.samples )
         if bytestring:
             return header.encode('UTF-8')
         return header
+
+    def get_position_header(self):
+        if not self.posfile_header:
+            self.parse_position_header()
+        return self.posfile_header
 
 
     def parse_haplotypes(self, maxline=-1):
@@ -190,6 +239,9 @@ class GenotypeLineParser(object):
         [   '0000022020',
             '0002020000' ]
         """
+
+        if not self.posfile:
+            self.parse_position_header()
 
         M = []
         for (idx, paired_line) in enumerate( zip(self.posfile, self.infile) ):
@@ -205,7 +257,7 @@ class GenotypeLineParser(object):
 
             M.append( x[0] for x in tokens )
 
-        cerr('I: reading %d SNP positions' % len(M))
+        cerr('I: haplotyping for %d SNP positions' % len(M))
 
         # do transpose
         M_t = [ *zip( *M) ]
@@ -255,6 +307,5 @@ class GenotypeLineParser(object):
 
                 for i in range(S):
                     M[i, idx] = token2value[ tokens[i][0] ]
-
 
         return M
