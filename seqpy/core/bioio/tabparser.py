@@ -264,6 +264,7 @@ class GenotypeLineParser(object):
         H = [ ''.join( x ).encode('UTF-8') for x in M_t ]
         return H
 
+
     def parse_np_haplotypes(self, maxline=-1):
         """ this return a numpy array haplotypes
         [   [0, 0, 0, 0, 2, 2, 0, 2, 0],
@@ -309,3 +310,56 @@ class GenotypeLineParser(object):
                     M[i, idx] = token2value[ tokens[i][0] ]
 
         return M
+
+    def parse_genes(self):
+        """ a generator that returns:
+            ( (chrom, pos, gene), positions, genotype matrix )
+        """
+
+        if not self.posfile:
+            self.parse_position_header()
+
+        P = []
+        M = []
+        current_gene = None
+
+        for (idx, paired_line) in enumerate( zip(self.posfile, self.infile) ):
+            posline, genoline = paired_line
+            posinfo = posline.split('\t')
+            gene = posinfo[4]
+            if not gene:
+                if current_gene:
+                    yield (current_gene, P, M)
+                    P = []
+                    M = []
+                    current_gene = None
+                continue
+            if current_gene is None:
+                current_gene = (posinfo[0], int(posinfo[1]), gene)
+                P.append(posinfo)
+                M.append(genoline.split())
+            elif gene == current_gene[2]:
+                P.append(posinfo)
+                M.append(genoline.split())
+            elif gene != current_gene[2]:
+                yield (current_gene, P, M)
+                P = [posinfo]
+                M = [genoline.split()]
+                current_gene = (posinfo[0], int(posinfo[1]), gene)
+
+        if current_gene:
+            yield (current_gene, P, M)
+
+
+    def parse_haplogenes(self):
+        """ return a list of haplotypes corresponding on the gene,
+            missing SNPs will be counted as another genotype, so make
+            sure we do not have missing calls\
+        """
+
+        if not self.posfile:
+            self.parse_position_header()
+
+        M = []
+        for (idx, paired_line) in enumerate( zip(self.posfile, self.infile) ):
+            pass
