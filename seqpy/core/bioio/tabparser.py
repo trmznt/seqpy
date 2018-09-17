@@ -5,8 +5,9 @@ from seqpy.cmds import arg_parser
 
 from seqpy.core.bioio import grpparser
 
-import numpy as numpy
+import numpy as np
 import pandas
+import attr
 
 # requires scikit-allel
 try:
@@ -319,36 +320,27 @@ class GenotypeLineParser(object):
         if not self.posfile:
             self.parse_position_header()
 
-        P = []
-        M = []
-        current_gene = None
+        region = None
 
         for (idx, paired_line) in enumerate( zip(self.posfile, self.infile) ):
             posline, genoline = paired_line
             posinfo = posline.split('\t')
             gene = posinfo[4]
             if not gene:
-                if current_gene:
-                    yield (current_gene, P, M)
-                    P = []
-                    M = []
-                    current_gene = None
+                if region:
+                    yield region
+                    region = None
                 continue
-            if current_gene is None:
-                current_gene = (posinfo[0], int(posinfo[1]), gene)
-                P.append(posinfo)
-                M.append(genoline.split())
-            elif gene == current_gene[2]:
-                P.append(posinfo)
-                M.append(genoline.split())
-            elif gene != current_gene[2]:
-                yield (current_gene, P, M)
-                P = [posinfo]
-                M = [genoline.split()]
-                current_gene = (posinfo[0], int(posinfo[1]), gene)
+            if region is None:
+                region = Region(gene, [posinfo], [genoline.split()])
+            elif gene == region.name:
+                region.append(posinfo, genoline.split())
+            elif gene != region.name:
+                yield region
+                region = Region(gene, [posinfo], [genoline.split()])
 
-        if current_gene:
-            yield (current_gene, P, M)
+        if region:
+            yield region
 
 
     def parse_haplogenes(self):
@@ -357,9 +349,54 @@ class GenotypeLineParser(object):
             sure we do not have missing calls\
         """
 
-        if not self.posfile:
-            self.parse_position_header()
+        M = []
+        for (idx, data) in enumerate(self.parse_genes()):
+            geninfo, posinfo, genotypes = data
+
+
+@attr.s
+class Region(object):
+    name = attr.ib()
+    P = attr.ib()
+    G = attr.ib()
+    H = None
+
+    def append(self, posinfo, genotypes):
+        self.P.append(posinfo)
+        self.G.append(genotypes)
+
+    def haplotypes(self):
+        """ return haplotypes """
+
+        if self.H:
+            return self.H
 
         M = []
-        for (idx, paired_line) in enumerate( zip(self.posfile, self.infile) ):
-            pass
+        for genotypes in self.G:
+            M.append( x[0] for x in genotypes )
+
+        #cerr('I: haplotyping for %d SNP positions' % len(M))
+
+        # do transpose
+        M_t = [ *zip( *M) ]
+        self.H = [ ''.join( x ).encode('UTF-8') for x in M_t ]
+        return self.H
+
+    def encode_haplotypes(self, haplotypes=None):
+
+        if not haplotypes:
+            haplotypes = self.haplotypes()
+
+        haplo_map = {}
+        c = 0
+        for k in haplotypes:
+            if k in haplo_map: continue
+            haplo_map[k]  = c
+            c += 1
+
+        en_haplo = np.zeros( len(haplotypes), dtype='i2' )
+        for i in range( len(haplotypes) ):
+            en_haplo[i] = haplo_map[ haplotypes[i] ]
+
+        return en_haplo
+
