@@ -62,7 +62,7 @@ class GenotypeLineParser(object):
             with open(args.includepos) as infile:
                 next(infile)
                 for line in infile:
-                    tokens = line.strip().split()
+                    tokens = line.strip().split('\t')
                     self.include_positions[ (tokens[0], tokens[1]) ] = True
 
         # need to read header of genotype
@@ -73,7 +73,7 @@ class GenotypeLineParser(object):
         if not self.samples:
             self.infile.seek(0)
             self.sample_header = next(self.infile).strip()
-            self.samples = self.sample_header.split('\t')
+            self.samples = self.sample_header.strip().split('\t')
         return self.samples
 
 
@@ -157,8 +157,8 @@ class GenotypeLineParser(object):
 
         for (idx, paired_line) in enumerate( zip(self.posfile, self.infile)):
             pos_line, geno_line = paired_line
-            tokens = geno_line.split()
-            pos_info = pos_line.split()
+            tokens = geno_line.strip().split('\t')
+            pos_info = pos_line.strip('\n').split('\t')
 
             if len(tokens) != len(self.samples):
                 cexit('E: genotype file does not match sample number at line %d' % idx)
@@ -185,7 +185,7 @@ class GenotypeLineParser(object):
             if maxline > 0 and idx >= maxline:
                 break
 
-            tokens = line.split()
+            tokens = line.strip().split('\t')
 
             if len(tokens) != len(self.samples):
                 cexit('E: genotype file does not match sample number at line %d' % idx)
@@ -216,8 +216,10 @@ class GenotypeLineParser(object):
             self.parse_position_header()
 
         self.position = []
-        for line in self.posfile:
-            self.position.append( line.strip().split() )
+        for idx, line in enumerate(self.posfile):
+            if maxline > 0 and idx >= maxline:
+                break
+            self.position.append( line.strip('\n').split('\t') )
 
         return self.position
 
@@ -251,10 +253,10 @@ class GenotypeLineParser(object):
 
             posline, genoline = paired_line
             if self.include_positions:
-                posinfo = posline.split()
+                posinfo = posline.strip('\n').split('\t')
                 if (posinfo[0], posinfo[1]) not in self.include_positions:
                     continue
-            tokens = genoline.split()
+            tokens = genoline.strip().split('\t')
 
             M.append( x[0] for x in tokens )
 
@@ -282,9 +284,9 @@ class GenotypeLineParser(object):
             l = 0
             for (idx, paired_line) in enumerate( zip(self.posfile, self.infile) ):
                 posline, genoline = paired_line
-                posinfo = posline.split()
+                posinfo = posline.strip('\n').split('\t')
                 if (posinfo[0], posinfo[1]) in self.include_positions:
-                    tokens = genoline.split()
+                    tokens = genoline.strip().split('\t')
                     if len(tokens) != S:
                         cexit('E: inconsistent number of samples!')
 
@@ -303,7 +305,7 @@ class GenotypeLineParser(object):
                 if idx >= L:
                     break
 
-                tokens = genoline.split()
+                tokens = genoline.strip().split('\t')
                 if len(tokens) != S:
                     raise RuntimeError('E: inconsistent number of samples!')
 
@@ -311,6 +313,7 @@ class GenotypeLineParser(object):
                     M[i, idx] = token2value[ tokens[i][0] ]
 
         return M
+
 
     def parse_genes(self):
         """ a generator that returns:
@@ -324,7 +327,7 @@ class GenotypeLineParser(object):
 
         for (idx, paired_line) in enumerate( zip(self.posfile, self.infile) ):
             posline, genoline = paired_line
-            posinfo = posline.split('\t')
+            posinfo = posline.strip('\n').split('\t')
             gene = posinfo[4]
             if not gene:
                 if region:
@@ -332,16 +335,43 @@ class GenotypeLineParser(object):
                     region = None
                 continue
             if region is None:
-                region = Region(gene, [posinfo], [genoline.split()])
+                region = Region(gene, [posinfo], [genoline.strip().split('\t')])
             elif gene == region.name:
-                region.append(posinfo, genoline.split())
+                region.append(posinfo, genoline.strip().split('\t'))
             elif gene != region.name:
                 yield region
-                region = Region(gene, [posinfo], [genoline.split()])
+                region = Region(gene, [posinfo], [genoline.strip().split('\t')])
 
         if region:
             yield region
 
+
+    def parse_chromosomes(self):
+        """ a generator that returns a region of whole chromosome """
+        if not self.posfile:
+            self.parse_position_header()
+
+        region = None
+
+        for (idx, paired_line) in enumerate( zip(self.posfile, self.infile) ):
+            posline, genoline = paired_line
+            posinfo = posline.strip('\n').split('\t')
+            chrom = posinfo[0]
+            if not chrom:
+                if region:
+                    yield region
+                    region = None
+                continue
+            if region is None:
+                region = Region(chrom, [posinfo], [genoline.strip().split('\t')])
+            elif chrom == region.name:
+                region.append(posinfo, genoline.strip().split('\t'))
+            elif chrom != region.name:
+                yield region
+                region = Region(chrom, [posinfo], [genoline.strip().split('\t')])
+
+        if region:
+            yield region
 
     def parse_haplogenes(self):
         """ return a list of haplotypes corresponding on the gene,
@@ -358,12 +388,15 @@ class GenotypeLineParser(object):
 class Region(object):
     name = attr.ib()
     P = attr.ib()
-    G = attr.ib()
+    A = attr.ib()
+    G = None
     H = None
+
 
     def append(self, posinfo, genotypes):
         self.P.append(posinfo)
-        self.G.append(genotypes)
+        self.A.append(genotypes)
+
 
     def haplotypes(self):
         """ return haplotypes """
@@ -372,7 +405,7 @@ class Region(object):
             return self.H
 
         M = []
-        for genotypes in self.G:
+        for genotypes in self.A:
             M.append( x[0] for x in genotypes )
 
         #cerr('I: haplotyping for %d SNP positions' % len(M))
@@ -381,6 +414,7 @@ class Region(object):
         M_t = [ *zip( *M) ]
         self.H = [ ''.join( x ).encode('UTF-8') for x in M_t ]
         return self.H
+
 
     def encode_haplotypes(self, haplotypes=None):
 
@@ -399,4 +433,21 @@ class Region(object):
             en_haplo[i] = haplo_map[ haplotypes[i] ]
 
         return en_haplo
+
+
+    def genotypes(self):
+        """ return genotype array """
+
+        if self.G:
+            return self.G
+
+        M = []
+        for ha in self.A:
+            M.append( [GenotypeLineParser.haploid_na_translator[k] for k in ha] )
+
+        self.G = M
+        return self.G
+
+    def positions(self):
+        return self.P
 
