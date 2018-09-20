@@ -373,6 +373,21 @@ class GenotypeLineParser(object):
         if region:
             yield region
 
+
+    def parse_whole(self):
+        if not self.posfile:
+            self.parse_position_header()
+
+        region = Region('whole', [], [])
+        for (idx, paired_line) in enumerate( zip(self.posfile, self.infile) ):
+            posline, genoline = paired_line
+            posinfo = posline.strip('\n').split('\t')
+
+            region.append(posinfo, genoline.strip().split('\t'))
+
+        yield region
+
+
     def parse_haplogenes(self):
         """ return a list of haplotypes corresponding on the gene,
             missing SNPs will be counted as another genotype, so make
