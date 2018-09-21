@@ -31,7 +31,7 @@ def prune_1(genotypes, threshold=0.5, score=None):
 		idx = scoring_index[i]
 		if not compress_index[i]:
 			continue
-		for _, j in scoring_index[i:]:
+		for _, j in scoring_index[i+1:]:
 			if r_2[i,j] > threshold:
 				compress_index[j] = False
 
@@ -55,18 +55,19 @@ def prune_2(genotypes, positions, threshold=0.5, score=None):
 	compress_index = [True] * len(scoring_index)
 
 	# calculate r^2
+	cerr('I: generating r^2 matrix')
 	r = allel.rogers_huff_r(genotypes.to_n_alt())
 	r_2 = scipy.spatial.distance.squareform( r**2 )
 
 	# walk through index
+	cerr('I: scanning r^2 matrix')
 	for i in range(N):
 		idx = scoring_index[i]
 		if not compress_index[i]:
 			continue
-		for _, j in scoring_index[i:]:
+		for _, j in scoring_index[i+1:]:
 			if r_2[i,j] > threshold:
 				# check if this is a CDS region
-				print(positions[j], positions[i])
 				if positions[j][4] and positions[j][4] != positions[i][4]:
 					continue
 				compress_index[j] = False
