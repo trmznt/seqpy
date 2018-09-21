@@ -299,7 +299,7 @@ class GenotypeLineParser(object):
             # we need to parse positions first
             positions = self.parse_position()
             L = maxline if maxline > 0 else len(positions)
-            M = np.zeros( (len(S), L), np.int8 )
+            M = np.zeros( (S, L), np.int8 )
 
             for (idx, genoline) in enumerate(self.infile):
                 if idx >= L:
