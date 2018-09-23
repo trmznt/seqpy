@@ -91,62 +91,10 @@ class GenotypeLineParser(object):
         groups = self.group_parser.assign_groups( samples )
         return groups
 
+
     @property
     def sample_idx(self):
         return self.group_parser.sample_idx
-
-    def parse_grouping_XXX(self):
-
-        # create a dictionary of groups <> sample_idx
-        if self.groupfile:
-            # this is a YAML/JSON file, open with YAML
-            import yaml
-            grouping = yaml.load( self.groupfile )
-            groups = {}
-            for g in grouping:
-                for s in grouping[g]:
-                    groups[s] = g
-            self.group_info = groups
-
-        elif self.metafile:
-            # this is a tab/comma delimited file
-            metadf = pandas.read_table(self.metafile, sep=self.delimiter)
-            sample_column, group_column = self.column.split(',')
-            if sample_column.isdigit():
-                sample_column = metadf.columns[ int(sample_column)-1 ]
-            if group_column.isdigit():
-                group_column = metadf.columns[ int(group_column)-1 ]
-
-            sampledf = metadf.loc[:, [sample_column, group_column] ]
-            groups = {}
-            for i in range(len(sampledf)):
-                r = sampledf.loc[i]
-                groups[r[0]] = r[1]
-
-            self.group_info = groups
-
-        else:
-            cexit('E: need groupfile or metafile')
-
-        # read the header of genotype and posfile
-        header = next(self.infile)
-        self.posfile_header = next(self.posfile)
-        samples = header.strip().split('\t')
-        cerr('I: reading %s samples from genotype file')
-        groups = {}
-        sample_idx = []
-        for idx, code in enumerate(samples):
-            grp_key = self.group_info[code]
-            if grp_key in groups:
-                groups[grp_key].append(idx)
-            else:
-                groups[grp_key] = [ idx ]
-            sample_idx.append( idx )
-
-        self.samples = samples
-        self.sample_idx = set(sample_idx)
-        self.groups = groups
-        return self.groups
 
 
     def parse(self):
@@ -173,7 +121,7 @@ class GenotypeLineParser(object):
 
 
     def translate(self, tokens):
-        return [ self.translator[k] for k in tokens ]
+        return np.array( [ self.translator[k] for k in tokens ], np.int8 )
 
 
     def parse_all(self, maxline=-1):
@@ -223,6 +171,7 @@ class GenotypeLineParser(object):
 
         return self.position
 
+
     def get_sample_header(self, bytestring=False):
         if not self.samples:
             cexit('E: need to parse sample header first')
@@ -230,6 +179,7 @@ class GenotypeLineParser(object):
         if bytestring:
             return header.encode('UTF-8')
         return header
+
 
     def get_position_header(self):
         if not self.posfile_header:
@@ -462,6 +412,7 @@ class Region(object):
 
         self.G = M
         return self.G
+
 
     def positions(self):
         return self.P
