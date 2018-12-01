@@ -42,7 +42,8 @@ def prune_1(genotypes, threshold=0.5, score=None):
 	for i in range(N):
 		if not compress_index[i]:
 			continue
-		for j in index[i:]:
+
+		for _, j in scoring_index[i+1:]:
 			if r_2[i,j] > threshold:
 				compress_index[j] = 0
 
@@ -69,10 +70,12 @@ def prune_2(genotypes, positions, threshold=0.5, score=None):
 	r_2 = calculate_r_2( genotypes )
 
 	# walk through index
+	cerr('I: scanning r^2 matrix')
 	for i in range(N):
 		if not compress_index[i]:
 			continue
-		for j in scoring_index[i:]:
+
+		for _, j in scoring_index[i+1:]:
 			if r_2[i,j] > threshold:
 				# check if this is a CDS region
 				if positions[j][4] and positions[j][4] != positions[i][4]:
