@@ -32,3 +32,43 @@ def ralt(genotypes):
 #                cerr('Disreparancy: %f' % dis)
 
     return data
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(True)
+def ralt_to_nalt(array, threshold=-1):
+
+    cdef int shape = len(array)
+    cdef float i_threshold = threshold
+    cdef double[:] array_v = array
+    cdef float r
+    nalt = np.empty(shape = shape, dtype=np.short)
+    cdef short[:] nalt_v = nalt
+
+    if i_threshold < 0:
+        for i in range(shape):
+            r = array_v[i]
+            if r < 0:
+                nalt_v[i] = -1
+            elif r > 0.5:
+                nalt_v[i] = 2
+            else:
+                nalt_v[i] = 0
+
+    else:
+        for i in range(shape):
+            r = array_v[i]
+            if r < 0:
+                nalt_v[i] = -1
+            elif r < i_threshold:
+                nalt_v[i] = 0
+            elif r > (1.0 - i_threshold):
+                nalt_v[i] = 2
+            else:
+                nalt_v[i] = 1
+        print(1-i_threshold)
+        print(array)
+        print(nalt)
+
+    return nalt
