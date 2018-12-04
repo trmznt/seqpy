@@ -64,7 +64,8 @@ def main():
 
     elif sys.argv[1] == '-i':
         # interactive
-        pass
+        import IPython
+        IPython.embed()
 
     else:
         from seqpy import cmds
