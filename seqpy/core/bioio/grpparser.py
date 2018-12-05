@@ -79,6 +79,9 @@ class GroupParser(object):
             if group_column.isdigit():
                 group_column = metadf.columns[ int(group_column)-1 ]
 
+            cerr('[I: reading metafile for column: %s %s'
+                    % (sample_column, group_column))
+
             sampledf = metadf.loc[:, [sample_column, group_column] ]
             groups = {}
             for i in range(len(sampledf)):
@@ -133,7 +136,8 @@ class GroupParser(object):
                 self.group_colours[k] = next(colour_wheel)
 
             if len(self.groups.keys()) > len(colour_list):
-                cerr("W: warning, no of groups exceeds available colour list!")
+                cerr("W: warning, no of groups (%d) exceeds available colour list!" %
+                    len(self.groups.keys()))
 
         return self.groups
 
