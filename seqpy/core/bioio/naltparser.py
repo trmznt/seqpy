@@ -118,6 +118,14 @@ class NAltLineParser(object):
         return self.samples
 
 
+    def parse_grouping(self):
+
+        # assign samples to group
+        samples = self.parse_samples()
+        groups = self.group_parser.assign_groups( samples )
+        return groups
+
+
     def parse_whole(self, n=-1):
         """ parse whole genome, return a Region """
 
