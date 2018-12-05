@@ -67,8 +67,5 @@ def ralt_to_nalt(array, threshold=-1):
                 nalt_v[i] = 2
             else:
                 nalt_v[i] = 1
-        print(1-i_threshold)
-        print(array)
-        print(nalt)
 
     return nalt
