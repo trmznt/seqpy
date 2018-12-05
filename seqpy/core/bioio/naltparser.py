@@ -42,8 +42,6 @@ class Region(object):
             self.M[i] = ralt_to_nalt(self.M[i], hetratio)
 
 
-
-
 class PositionParser(object):
 
     def __init__(self, args):
@@ -87,7 +85,6 @@ def init_argparser(p=None):
     p.add_argument('infile')
 
     return p
-
 
 
 class NAltLineParser(object):
@@ -140,5 +137,10 @@ class NAltLineParser(object):
         return region
 
 
+    def parse_chromosomes(self):
+        pass
 
+
+    def parse_genes(self):
+        pass
 
