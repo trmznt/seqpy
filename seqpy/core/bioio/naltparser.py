@@ -24,13 +24,29 @@ class Region(object):
     def __init__(self, name, P=None, M=None):
         self.name = name    # name of region
         self.P = P or []        # position
+
         self.M = M or []        # n_alt matrix (no of alternate allele)
-        self.H = None            # haploytpes
+        # self.M is structured as
+        # [ [ snp1_smaple1 snp1_sample2 snp1_sample3 ...]
+        #    [ snp2_sample1 snp2_sample2 snp2_sample3 ...]
+        # ]
+
+        self.H = None            # haploytpes as 2D numpy array of short
+        # self.H is structured as
+        # [    sample1_snp1 sample1_snp2 sample1_snp3 ...
+        #    sample2_snp1 sample2_snp2 sample2_snp3 ...
+        # ]
 
     def append(self, posinfo, n_alt):
         self.P.append(posinfo)
         self.M.append(n_alt)
 
+    def haplotypes(self):
+        if self.H:
+            return self.H
+
+        self.H = np.transpose( np.array(self.M) )
+        return self.H
 
     def ralt_to_nalt(self, majority=False, hetratio=0.25):
 
