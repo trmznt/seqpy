@@ -57,6 +57,10 @@ class Region(object):
         for i in range(len(self.M)):
             self.M[i] = ralt_to_nalt(self.M[i], hetratio)
 
+    def parse_positions(self):
+        for pos_nalt in zip(self.P, self.M):
+            yield pos_nalt
+
 
 class PositionParser(object):
 
