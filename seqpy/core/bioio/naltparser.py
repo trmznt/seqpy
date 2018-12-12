@@ -146,7 +146,7 @@ class NAltLineParser(object):
         return groups
 
 
-    def parse_whole(self, n=-1):
+    def parse_whole(self, n=-1, mask=None):
         """ parse whole genome, return a Region """
 
         region = Region('whole')
@@ -154,10 +154,13 @@ class NAltLineParser(object):
                     zip(self.position_parser.get_posinfo(), self.infile)):
             posinfo, nalt_line = paired_line
 
-            region.append(posinfo, self.convert_data(nalt_line))
-
             if n > 0 and idx >= n:
                 break
+
+            region.append(posinfo,
+                            self.convert_data(nalt_line) if not mask
+                            else (self.convert_data(nalt_line)[mask])
+            )
 
             if idx % 1000 == 0:
                 cerr('Reading line %d' % idx)
@@ -171,4 +174,13 @@ class NAltLineParser(object):
 
     def parse_genes(self):
         pass
+
+
+    def subset(self, L, name='subset'):
+
+        new_region = Region(name)
+        for l in L:
+            new_region.append( self.P[l], self.M[l] )
+
+        return new_region
 
