@@ -53,6 +53,7 @@ class GroupParser(object):
         self.column = args.column
         self.group_info = {}        # { 'indv1': 'grp1', 'indv2': 'grp1', ...}
         self.groups = {}            # { 'grp1': [ 'indv1', 'indv2', ...], ...}
+        self.group_keys = None      # [ 'grp1', 'grp1', 'grp2', 'grp1', ...]
         self.group_colours = {}
 
 
@@ -103,6 +104,7 @@ class GroupParser(object):
 
         groups = {}
         sample_idx = []
+        group_keys = []
         for idx, code in enumerate(samples):
             grp_key = self.group_info[code]
             if grp_key in groups:
@@ -110,10 +112,12 @@ class GroupParser(object):
             else:
                 groups[grp_key] = [ idx ]
             sample_idx.append( idx )
+            group_keys.append(grp_key)
 
         self.samples = samples
         self.sample_idx = set(sample_idx)
         self.groups = groups
+        self.group_keys = group_keys
 
         if self.colourfile:
             # parse colour file
