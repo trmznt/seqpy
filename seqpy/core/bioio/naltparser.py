@@ -159,7 +159,7 @@ class NAltLineParser(object):
             if n > 0 and idx >= n:
                 break
 
-            if idx % 100 == 0:
+            if idx % 1000 == 0:
                 cerr('Reading line %d' % idx)
 
         return region
