@@ -12,26 +12,33 @@ def ralt(genotypes):
     cdef int shape = len(genotypes)
     cdef int gt_tot = 0
     data = np.empty(shape = shape, dtype=np.double)
+    read = np.empty(shape = shape, dtype=np.short)
     cdef short[:, :] genotype_view = genotypes
     cdef double[:] data_view = data
+    cdef short[:] read_view = read
     cdef short[:] gt_view
+    cdef short gt_0
+    cdef short gt_1
 
     for i in range(shape):
         gt_view = genotype_view[i]
         #gt = genotypes[i]
         #tot = gt[0] + gt[1]
-        gt_tot = gt_view[0] + gt_view[1]
+        gt_0 = gt_view[0]
+        gt_1 = gt_view[1]
+        gt_tot = gt_0 + gt_1
         if gt_tot == 0:
             data_view[i] = -1
         else:
-            data_view[i] = <double> gt_view[0]/gt_tot                        
+            data_view[i] = <double> gt_0/gt_tot
             #dis = (data_view[i] - gt[0]/tot) ** 2
             #if  dis > 1e-5: 
             #    cerr('Data: %d %d %f| %d %d %f'% (gt_view[0], gt_tot, <double> gt_view[0]/gt_tot, gt[0], tot, gt[0]/tot))
 
 #                cerr('Disreparancy: %f' % dis)
+        read_view[i] = gt_0 if gt_0 < gt_1 else gt_1
 
-    return data
+    return data, read
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
