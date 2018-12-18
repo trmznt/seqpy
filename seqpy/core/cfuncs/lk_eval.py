@@ -1,6 +1,7 @@
 # Likelihood evaluator
 
 import numpy as np
+import pandas as pd
 
 class LikelihoodEvaluator(object):
 
@@ -90,17 +91,52 @@ class LikelihoodEvaluator(object):
 
 
 
-def calculate_accuracy(results, outfile):
+def calculate_accuracy(results, label=0):
+
 
     # for now, just print no of proportion with correct assignment
-    props = []
+
+    accs = []
+
     for paired_results in results:
-        match = 0
+        grp = {}
         for g,e in paired_results:
-            if g==e: match += 1
+            if g not in grp:
+                g_grp = grp[g] = [0, 0, 0, 0]   # TP, TN, FP, FN
+            else:
+                g_grp = grp[g]
 
-        props.append( match/len(paired_results) )
+            if e not in grp:
+                e_grp = grp[e] = [0, 0, 0, 0]
+            else:
+                e_grp = grp[e]
 
-    print('Prop of correct assignment - avg = %f, med = %f. max = %f, min = %f' %
-            ( np.mean(props), np.median(props), np.max(props), np.min(props) )
-    )
+            if g==e:
+                g_grp[0] += 1   # TP
+            else:
+                g_grp[3] += 1   # FN should be g but instead e
+                e_grp[2] += 1   # FP
+
+
+        for g in grp:
+            g_grp = grp[g]
+            TP = g_grp[0]; FP = g_grp[2]; FN = g_grp[3]
+            TN = len(paired_results) - (TP+FP+FN)
+            accs.append( {'_k': label,
+                            'ACC': (TP+TN)/(TP+TN+FP+FN),
+                            'TPR': TP/(TP + FN) if (TP+FN) > 0 else 0,
+                            'TNR': TN/(TN + FP) if (TN+FP) > 0 else 0,
+                            'PPV': TP/(TP+FP) if (TP+FP) > 0 else 0,
+                            'NPV': TN/(TN+FN) if (TN+FN) > 0 else 0,
+                            'REG': g
+                            }
+                )
+
+    return pd.DataFrame(accs)
+
+
+    #    props.append( match/len(paired_results) )
+
+    #print('Prop of correct assignment - avg = %f, med = %f. max = %f, min = %f' %
+    #        ( np.mean(props), np.median(props), np.max(props), np.min(props) )
+    #)
