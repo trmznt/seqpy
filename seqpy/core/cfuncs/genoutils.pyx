@@ -44,18 +44,20 @@ def ralt(genotypes):
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-def ralt_to_nalt(array, threshold=-1):
+def ralt_to_nalt(r_alt, n_mdp, threshold=-1, mindp=3):
 
-    cdef int shape = len(array)
+    cdef int shape = len(r_alt)
     cdef float i_threshold = threshold
-    cdef double[:] array_v = array
+    cdef double[:] ralt_v = r_alt
+    cdef int[:] nmdp_v = n_mdp
     cdef float r
+    cdef int d
     nalt = np.empty(shape = shape, dtype=np.short)
     cdef short[:] nalt_v = nalt
 
     if i_threshold < 0:
         for i in range(shape):
-            r = array_v[i]
+            r = ralt_v[i]
             if r < 0:
                 nalt_v[i] = -1
             elif r > 0.5:
@@ -65,14 +67,15 @@ def ralt_to_nalt(array, threshold=-1):
 
     else:
         for i in range(shape):
-            r = array_v[i]
+            r = ralt_v[i]
+            d = nmdp_v[i]
             if r < 0:
                 nalt_v[i] = -1
-            elif r < i_threshold:
-                nalt_v[i] = 0
-            elif r > (1.0 - i_threshold):
-                nalt_v[i] = 2
-            else:
+            elif i_threshold < r < (1.0 - i_threshold) and d > mindp:
                 nalt_v[i] = 1
+            elif r < 0.5:
+                nalt_v[i] = 0
+            else:
+                nalt_v[i] = 2
 
     return nalt
