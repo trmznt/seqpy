@@ -6,7 +6,7 @@ from seqpy.cmds import arg_parser
 from seqpy.core.bioio import grpparser
 
 import numpy as np
-import pandas
+import pandas as pd
 import attr
 import io
 import itertools
@@ -58,8 +58,8 @@ class Region(object):
             self.M[i] = ralt_to_nalt(self.M[i], hetratio)
 
     def parse_positions(self):
-        for pos_nalt in zip(self.P, self.M):
-            yield pos_nalt
+        for i in range(len(self.M)):
+            yield (self.P[i], self.M[i])
 
 
 class PositionParser(object):
@@ -71,7 +71,18 @@ class PositionParser(object):
         self.posfile = None
         self.posfile_header = None
         self.positions = None
+        self.header = None
+        self.M = None
 
+    def read_data(self):
+        if self.M is None:
+            df = pd.read_table(self.posfilename, delimiter='\t')
+            self.M = df.values
+            self.header = df.columns
+
+    def get_M(self):
+        self.read_data()
+        return self.M
 
     def get_posinfo(self):
 
@@ -114,27 +125,43 @@ class NAltLineParser(object):
     # SNP1    0    0    1
     # SNP2    0    2    1
     # SNP3    0    0    0
+    #
+    # there are 2 variant of data reader;
+    # 1) using pandas.read_table (fast) or
+    # 2) using numpy.fromfile (memory )
 
     def __init__(self, args, datatype='nalt'):
 
         self.group_parser = grpparser.GroupParser( args )
         self.position_parser = PositionParser( args )
 
-        self.infile = gzopen(args.infile)
+        self.infile = args.infile
 
-        self.convert_data = lambda line: np.loadtxt(io.StringIO(line),
-                                dtype = np.int if datatype=='nalt' else np.float,
-                                delimiter='\t')
+        self.dtype = np.int if datatype=='nalt' else np.float
+        #self.convert_data = lambda line: np.loadtxt(io.StringIO(line),
+        #                        dtype = self.dtype, delimiter='\t')
 
+        #self.convert_data = lambda line: pd.read_table(io.StringIO(line),
+        #                        dtype = dtype, delimiter='\t', header=None).values
+
+        self.convert_data = lambda line: np.fromfile(io.StringIO(line),
+                                dtype = dtype, delimiter='\t')
+
+        self.M = None
         self.samples = None
+
         self.parse_samples()
 
 
+    def read_data(self):
+        if not self.M:
+            df = pd.read_table(self.infile, dtype=self.dtype, delimiter='\t')
+            self.samples = df.columns
+            self.M = df.values
+
     def parse_samples(self):
-        if not self.samples:
-            self.infile.seek(0)
-            self.sample_header = next(self.infile).strip()
-            self.samples = self.sample_header.split('\t')
+        if self.samples is None:
+            self.read_data()
         return self.samples
 
 
@@ -150,20 +177,8 @@ class NAltLineParser(object):
         """ parse whole genome, return a Region """
 
         region = Region('whole')
-        for (idx, paired_line) in enumerate(
-                    zip(self.position_parser.get_posinfo(), self.infile)):
-            posinfo, nalt_line = paired_line
-
-            if n > 0 and idx >= n:
-                break
-
-            region.append(posinfo,
-                            self.convert_data(nalt_line) if not mask
-                            else (self.convert_data(nalt_line)[mask])
-            )
-
-            if idx % 1000 == 0:
-                cerr('Reading line %d' % idx)
+        region.M = self.M
+        region.P = self.position_parser.get_M()
 
         return region
 
