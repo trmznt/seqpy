@@ -61,6 +61,16 @@ class Region(object):
         for i in range(len(self.M)):
             yield (self.P[i], self.M[i])
 
+    def filter_positions(self, posindex):
+        self.df_M = self.df_M.iloc[posindex, :]
+        self.M = self.df_M.values
+        self.df_P = self.df_P.iloc[posindex, :]
+        self.P = self.df_P.values
+
+    def filter_samples(self, indvindex):
+        self.df_M = self.df_M.iloc[:, indvindex]
+        self.M = self.df_M.values
+
 
 class PositionParser(object):
 
@@ -72,13 +82,20 @@ class PositionParser(object):
         self.posfile_header = None
         self.positions = None
         self.header = None
+        self.n = args.n
+        self.df = None
         self.M = None
 
     def read_data(self):
         if self.M is None:
-            df = pd.read_table(self.posfilename, delimiter='\t')
-            self.M = df.values
-            self.header = df.columns
+            self.df = pd.read_table(self.posfilename, delimiter='\t',
+                        nrows=self.n if self.n > 0 else None)
+            self.M = self.df.values
+            self.header = self.df.columns
+
+    def get_df(self):
+        self.read_data()
+        return self.df
 
     def get_M(self):
         self.read_data()
@@ -113,6 +130,7 @@ def init_argparser(p=None):
 
     p.add_argument('--posfile', default=None)
     p.add_argument('--includepos', default='')
+    p.add_argument('-n', type=int, default=-1)
     p.add_argument('infile')
 
     return p
@@ -136,6 +154,7 @@ class NAltLineParser(object):
         self.position_parser = PositionParser( args )
 
         self.infile = args.infile
+        self.n = args.n
 
         self.dtype = np.int if datatype=='nalt' else np.float
         #self.convert_data = lambda line: np.loadtxt(io.StringIO(line),
@@ -147,6 +166,7 @@ class NAltLineParser(object):
         self.convert_data = lambda line: np.fromfile(io.StringIO(line),
                                 dtype = dtype, delimiter='\t')
 
+        self.df = None
         self.M = None
         self.samples = None
 
@@ -155,9 +175,10 @@ class NAltLineParser(object):
 
     def read_data(self):
         if not self.M:
-            df = pd.read_table(self.infile, dtype=self.dtype, delimiter='\t')
-            self.samples = df.columns
-            self.M = df.values
+            self.df = pd.read_table(self.infile, dtype=self.dtype, delimiter='\t',
+                            nrows=self.n if self.n > 0 else None)
+            self.samples = self.df.columns
+            self.M = self.df.values
 
     def parse_samples(self):
         if self.samples is None:
@@ -177,11 +198,17 @@ class NAltLineParser(object):
         """ parse whole genome, return a Region """
 
         region = Region('whole')
+        region.df_M = self.df
         region.M = self.M
+        region.df_P = self.position_parser.get_df()
         region.P = self.position_parser.get_M()
 
         return region
 
+
+    def parse_lines(self, n=-1):
+        """ parse whole file yielding line-by-line """
+        pass
 
     def parse_chromosomes(self):
         pass
