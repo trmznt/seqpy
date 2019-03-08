@@ -88,7 +88,7 @@ class PositionParser(object):
 
     def read_data(self):
         if self.M is None:
-            self.df = pd.read_table(self.posfilename, delimiter='\t',
+            self.df = pd.read_csv(self.posfilename, delimiter='\t',
                         nrows=self.n if self.n > 0 else None)
             self.M = self.df.values
             self.header = self.df.columns
@@ -145,7 +145,7 @@ class NAltLineParser(object):
     # SNP3    0    0    0
     #
     # there are 2 variant of data reader;
-    # 1) using pandas.read_table (fast) or
+    # 1) using pandas.read_csv (fast) or
     # 2) using numpy.fromfile (memory )
 
     def __init__(self, args, datatype='nalt'):
@@ -160,7 +160,7 @@ class NAltLineParser(object):
         #self.convert_data = lambda line: np.loadtxt(io.StringIO(line),
         #                        dtype = self.dtype, delimiter='\t')
 
-        #self.convert_data = lambda line: pd.read_table(io.StringIO(line),
+        #self.convert_data = lambda line: pd.read_csv(io.StringIO(line),
         #                        dtype = dtype, delimiter='\t', header=None).values
 
         self.convert_data = lambda line: np.fromfile(io.StringIO(line),
@@ -175,7 +175,7 @@ class NAltLineParser(object):
 
     def read_data(self):
         if not self.M:
-            self.df = pd.read_table(self.infile, dtype=self.dtype, delimiter='\t',
+            self.df = pd.read_csv(self.infile, dtype=self.dtype, delimiter='\t',
                             nrows=self.n if self.n > 0 else None)
             self.samples = self.df.columns
             self.M = self.df.values
