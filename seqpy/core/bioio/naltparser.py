@@ -48,14 +48,14 @@ class Region(object):
         self.H = np.transpose( np.array(self.M) )
         return self.H
 
-    def ralt_to_nalt(self, majority=False, hetratio=0.25):
+    def ralt_to_nalt(self, hetratio=0.25):
 
         from genoutils import ralt_to_nalt
 
-        if majority:
-            hetratio = -1
+        if hetratio < 0:
+            n_mdp = np.array([], dtype=np.intc)
         for i in range(len(self.M)):
-            self.M[i] = ralt_to_nalt(self.M[i], hetratio)
+            self.M[i] = ralt_to_nalt(self.M[i], n_mdp, hetratio)
 
     def parse_positions(self):
         for i in range(len(self.M)):
@@ -184,6 +184,9 @@ class NAltLineParser(object):
         if self.samples is None:
             self.read_data()
         return self.samples
+
+    def get_sample_header(self):
+        return '\t'.join(self.samples)
 
 
     def parse_grouping(self):
