@@ -73,7 +73,7 @@ class GroupParser(object):
 
         elif self.metafile:
             # this is a tab/comma delimited file
-            metadf = pandas.read_table(self.metafile, sep=self.delimiter)
+            metadf = pandas.read_csv(self.metafile, sep=self.delimiter)
             sample_column, group_column = self.column.split(',')
             if sample_column.isdigit():
                 sample_column = metadf.columns[ int(sample_column)-1 ]
