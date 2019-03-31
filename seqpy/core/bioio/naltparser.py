@@ -156,7 +156,7 @@ class NAltLineParser(object):
         self.infile = args.infile
         self.n = args.n
 
-        self.dtype = np.int if datatype=='nalt' else np.float
+        self.dtype = np.int8 if datatype=='nalt' else np.float
         #self.convert_data = lambda line: np.loadtxt(io.StringIO(line),
         #                        dtype = self.dtype, delimiter='\t')
 
