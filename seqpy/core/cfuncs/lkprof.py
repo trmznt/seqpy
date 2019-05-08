@@ -54,6 +54,7 @@ class LikelihoodProfile(object):
 
 
     def predict_with_confidence(self, X_test):
+        """ not: condifende score need to be rethought!! """
 
         predictions = []
         confidences = []
@@ -65,6 +66,24 @@ class LikelihoodProfile(object):
             confidences.append( lkscore[-1][0]/lkscore[-2][0] )
 
         return predictions, confidences
+
+
+    def predict_with_proba(self, X_test):
+
+        predictions = []
+        probabilities = []
+
+        for n_alt_data in X_test:
+            lkscore = self.calculate_likelihoods(n_alt_data)
+            lkscore.sort()
+            predictions.append( lks[-1][1] )
+
+            lkhoods = [ math.e*x[0] for x in lkscore ]
+            lk_ratio = lkhoods[0] / sum(lkhoods[1:])
+            proba = lk_ratio/(1+lk_ratio)
+            probabilities.append( proba )
+
+        return predictions, probabilities
 
 
     def calculate_likelihoods(self, n_alt_data):
