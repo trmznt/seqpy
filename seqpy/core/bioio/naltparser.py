@@ -179,6 +179,7 @@ def init_argparser(p=None):
     p.add_argument('--posfile', default=None)
     p.add_argument('--includepos', default='')
     p.add_argument('-n', type=int, default=-1)
+    p.add_argument('--fmt', default='tab', choices = ['tab', 'pickle'])
     p.add_argument('infile')
 
     return p
@@ -196,13 +197,13 @@ class NAltLineParser(object):
     # 1) using pandas.read_csv (fast) or
     # 2) using numpy.fromfile (memory )
 
-    def __init__(self, args, datatype='nalt', fmt='tab'):
+    def __init__(self, args, datatype='nalt'):
 
         self.group_parser = grpparser.GroupParser( args )
         self.position_parser = PositionParser( args )
 
         self.infile = args.infile
-        self.fmt = fmt
+        self.fmt = args.fmt
         self.n = args.n
 
         self.dtype = np.int8 if datatype=='nalt' else np.float
@@ -227,7 +228,7 @@ class NAltLineParser(object):
         if not self.M:
 
             if self.fmt == 'pickle':
-                self.df = pd.read_msgpack(self.infile)
+                self.df = pd.read_pickle(self.infile)
             else:
                 self.df = pd.read_csv(self.infile, dtype=self.dtype, delimiter='\t',
                             nrows=self.n if self.n > 0 else None)
