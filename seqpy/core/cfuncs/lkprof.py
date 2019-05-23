@@ -202,7 +202,7 @@ class LikelihoodEvaluator(object):
         return log_lk
 
 
-def calculate_scores(target, prediction, label=0, method='lk', simid=-1):
+def calculate_scores(target, prediction, **kwargs):
 
     assert len(target) == len(prediction)
 
@@ -230,9 +230,7 @@ def calculate_scores(target, prediction, label=0, method='lk', simid=-1):
         g_grp = grp[g]
         TP = g_grp[0]; FP = g_grp[2]; FN = g_grp[3]
         TN = len(prediction) - (TP+FP+FN)
-        d = {   '_k': label,
-                'METHOD': method,
-                'SIMID': simid,
+        d = {
                 'ACC': (TP+TN)/(TP+TN+FP+FN),
                 'TPR': TP/(TP + FN) if (TP+FN) > 0 else 1e-5,
                 'TNR': TN/(TN + FP) if (TN+FP) > 0 else 1e-5,
@@ -240,6 +238,7 @@ def calculate_scores(target, prediction, label=0, method='lk', simid=-1):
                 'NPV': TN/(TN+FN) if (TN+FN) > 0 else 1e-5,
                 'REG': g
         }
+        d.update( kwargs )
         d['BACC'] = (d['TPR'] + d['TNR'])/2
         d['F'] = 2 * d['PPV'] * d['TPR']/( d['PPV'] + d['TPR'] ) if (d['PPV'] + d['TPR']) > 0 else 0
 
@@ -252,7 +251,8 @@ def calculate_scores(target, prediction, label=0, method='lk', simid=-1):
         scores[score] = ( np.median(values), np.mean(values), np.min(values) )
 
     for i, g in enumerate(['MEDIAN', 'MEAN', 'MIN']):
-        d = { '_k': label, 'METHOD': method, 'SIMID': simid, 'REG': g }
+        d = { 'REG': g }
+        d.update( kwargs )
         for score in [ 'ACC', 'TPR', 'TNR', 'PPV', 'NPV', 'BACC', 'F']:
             d[score] = scores[score][i]
         accs.append( d )
