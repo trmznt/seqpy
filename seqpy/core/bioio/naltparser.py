@@ -61,16 +61,64 @@ class Region(object):
         for i in range(len(self.M)):
             yield (self.P[i], self.M[i])
 
-    def filter_positions(self, posindex):
-        self.df_M = self.df_M.iloc[posindex, :]
-        self.M = self.df_M.values
-        self.df_P = self.df_P.iloc[posindex, :]
-        self.P = self.df_P.values
+    def filter_poslines(self, poslines, inplace=True):
+
+        # create dictionary of [chr][pos] = index
+        d = {}
+        for i, line in enumerate(self.P):
+            try:
+                d[line[0]][line[1]] = i
+            except KeyError:
+                d[line[0]] = { line[1]: i}
+
+        indexes = []
+        counter = 0
+        for line in poslines:
+            if not line: continue
+            try:
+                counter += 1
+                indexes.append( d[line[0]][int(line[1])])
+            except KeyError:
+                cerr('[I - warning: position not found: %s %s]' % (line[0], line[1]))
+
+        cerr('[I - warning: only found %d out of %d positions]' % (len(indexes), counter))
+
+        return self.filter_positions( indexes, inplace )
+
+
+    def filter_positions(self, posindex, inplace=True):
+        posindex = np.sort(posindex)
+        if inplace:
+            self.df_M = self.df_M.iloc[posindex, :]
+            self.M = self.df_M.values
+            self.df_P = self.df_P.iloc[posindex, :]
+            self.P = self.df_P.values
+            return self
+
+        new_reg = Region(self.name)
+        new_reg.df_M = self.df_M.iloc[posindex, :]
+        new_reg.M = self.df_M.values
+        new_reg.df_P = self.df_P.iloc[posindex, :]
+        new_reg.P = self.df_P.values
+        return new_reg
 
     def filter_samples(self, indvindex):
         self.df_M = self.df_M.iloc[:, indvindex]
         self.M = self.df_M.values
 
+    def filter_mac(self, mac = 1, inplace=True):
+
+        # get posindex whose MAC >= mac
+        allele_0 = np.count_nonzero(self.M < 0.5, axis=1)
+        allele_1 = len(self.M[0]) - allele_0
+        allele_mac = np.minimum(allele_0, allele_1)
+        posindex = np.flatnonzero( allele_mac >= mac )
+        cerr('[I - filtering MAC = %d from %d SNPs to %d SNPs]'
+            % (mac, len(allele_mac), len(posindex)))
+
+        #import IPython; IPython.embed()
+
+        return self.filter_positions(posindex, inplace)
 
 class PositionParser(object):
 
@@ -148,12 +196,13 @@ class NAltLineParser(object):
     # 1) using pandas.read_csv (fast) or
     # 2) using numpy.fromfile (memory )
 
-    def __init__(self, args, datatype='nalt'):
+    def __init__(self, args, datatype='nalt', fmt='tab'):
 
         self.group_parser = grpparser.GroupParser( args )
         self.position_parser = PositionParser( args )
 
         self.infile = args.infile
+        self.fmt = fmt
         self.n = args.n
 
         self.dtype = np.int8 if datatype=='nalt' else np.float
@@ -174,16 +223,23 @@ class NAltLineParser(object):
 
 
     def read_data(self):
+        cerr('[I - reading file %s]' % self.infile)
         if not self.M:
-            self.df = pd.read_csv(self.infile, dtype=self.dtype, delimiter='\t',
+
+            if self.fmt == 'pickle':
+                self.df = pd.read_msgpack(self.infile)
+            else:
+                self.df = pd.read_csv(self.infile, dtype=self.dtype, delimiter='\t',
                             nrows=self.n if self.n > 0 else None)
             self.samples = self.df.columns
             self.M = self.df.values
+
 
     def parse_samples(self):
         if self.samples is None:
             self.read_data()
         return self.samples
+
 
     def get_sample_header(self):
         return '\t'.join(self.samples)
