@@ -57,6 +57,7 @@ def main():
                     argp = p.parse_args(sys.argv[1:])
                     main(argp)
                 else:
+                    import inspect
                     if 'args' in inspect.getargspec(main)[0]:
                         main( args=sys.argv )
                     else:
@@ -70,7 +71,7 @@ def main():
     else:
         from seqpy import cmds
         cmds.execute( sys.argv[1:] )
-        
+
 
 
 if __name__ == '__main__':
