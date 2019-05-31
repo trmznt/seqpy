@@ -10,6 +10,7 @@ import pandas as pd
 import attr
 import io
 import itertools
+import functools
 
 # requires scikit-allel
 try:
@@ -109,16 +110,26 @@ class Region(object):
     def filter_mac(self, mac = 1, inplace=True):
 
         # get posindex whose MAC >= mac
-        allele_0 = np.count_nonzero(self.M < 0.5, axis=1)
-        allele_1 = len(self.M[0]) - allele_0
-        allele_mac = np.minimum(allele_0, allele_1)
-        posindex = np.flatnonzero( allele_mac >= mac )
+        snpindex = self.get_snpindex( mac = mac )
         cerr('[I - filtering MAC = %d from %d SNPs to %d SNPs]'
-            % (mac, len(allele_mac), len(posindex)))
+            % (mac, len(allele_mac), len(snpindex)))
 
-        #import IPython; IPython.embed()
+        return self.filter_positions(snpindex, inplace)
 
-        return self.filter_positions(posindex, inplace)
+
+    def get_snpindex(self, mac = 0):
+        """ get SNP index with provided criteria, please extend as necessary """
+
+        snpindexes = []
+        if mac > 0:
+            # get posindex whose MAC >= mac
+            allele_0 = np.count_nonzero(self.M < 0.5, axis=1)
+            allele_1 = len(self.M[0]) - allele_0
+            allele_mac = np.minimum(allele_0, allele_1)
+            snpindexes.append( np.flatnonzero( allele_mac >= mac ) )
+
+        return functools.reduce( np.intersect1d, snpindexes)
+
 
 class PositionParser(object):
 
