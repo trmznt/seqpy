@@ -126,11 +126,14 @@ class RandomSelector(BaseSelector):
 
 class FixSNPSelector(BaseSelector):
 
+    code = 'fix'
+
     def __init__(self, model_id, k=None, snpindex=None, snpfile=None, iteration=1, seed=None):
         if snpindex is not None:
             self.L = snpindex
         elif snpfile:
-            self.L = np.array( [ int(x) for x in open(snpfile).read().split('\n')] )
+            #self.L = np.array( [ int(x) for x in open(snpfile).read().split('\n')] )
+            self.L = snpindex = np.loadtxt( snpfile, dtype=int)
         super().__init__(model_id, k, snpindex, iteration, seed)
 
     def select(self, haplotypes, groups, haplotest, k=None):
@@ -272,7 +275,8 @@ class HierarchicalFSTSelector(BaseSelector):
 
                 snplist, F = self.select_2(haplotypes1, haplotypes2)
                 if snplist:
-                    self.log('F: %5.4f SNP: %d for pop %s <> %s' % (F, len(snplist), pop1, pop2))
+                    self.log('F: %5.4f SNP: %d for pop %s <> %s => %s'
+                        % (F, len(snplist), pop1, pop2, snplist))
 
                     for p in snplist:
                         candidate_L.append( (p, level, n_pops) )
@@ -325,7 +329,7 @@ class HHFSTDTSelector(HierarchicalFSTSelector):
         for i in range(3):
 
             classifier = DecisionTreeClassifier(class_weight='balanced'
-                , random_state = self.randomstate, min_samples_leaf=2)
+                , random_state = self.randomstate, min_samples_leaf = self.min_samples_leaf)
             classifier = classifier.fit(X_train, y_train)
             features = classifier.tree_.feature
 
