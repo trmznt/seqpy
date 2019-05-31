@@ -58,7 +58,7 @@ def main():
                     main(argp)
                 else:
                     import inspect
-                    if 'args' in inspect.getargspec(main)[0]:
+                    if 'args' in inspect.signature(main).parameters:
                         main( args=sys.argv )
                     else:
                         main()
