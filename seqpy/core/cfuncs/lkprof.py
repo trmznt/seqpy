@@ -121,8 +121,8 @@ class RandomSelector(BaseSelector):
         super().__init__(model_id, k, snpindex, iteration, seed)
 
     def select(self, haplotypes_train, groups_train, haplotypes_test, k):
-        if self.snpindex:
-            return (np.random.choice(snpindex, k, replace=False), None, {})
+        if self.snpindex is not None:
+            return (np.random.choice(self.snpindex, k, replace=False), None, {})
         return (self.randomstate.randint(0, len(haplotypes_train[0]), k), None, {})
 
 
