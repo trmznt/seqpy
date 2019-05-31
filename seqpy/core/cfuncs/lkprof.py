@@ -101,7 +101,7 @@ class BaseSelector(object):
         log += [ '[I - {%d|%s}: %s]' % (simid, self.model_id, line)
                         for line in self.flush_log() ]
 
-        return (pd.concat( results ), snps, log)
+        return (pd.concat( results, sort=False ), snps, log)
 
 
     def log(self, text):
@@ -121,6 +121,8 @@ class RandomSelector(BaseSelector):
         super().__init__(model_id, k, snpindex, iteration, seed)
 
     def select(self, haplotypes_train, groups_train, haplotypes_test, k):
+        if self.snpindex:
+            return (np.random.choice(snpindex, k, replace=False), None, {})
         return (self.randomstate.randint(0, len(haplotypes_train[0]), k), None, {})
 
 
@@ -412,7 +414,7 @@ def cross_validate_worker( args ):
             snps.update( snplist )
             log += mlog
 
-        return (simid, pd.concat(results), snps, log)
+        return (simid, pd.concat(results, sort=False), snps, log)
 
     X, y = prepare_stratified_samples(X, y, fold)
 
@@ -432,7 +434,7 @@ def cross_validate_worker( args ):
             snps.update( snplist )
             log += mlog
 
-    return (simid, pd.concat(results), snps, log)
+    return (simid, pd.concat(results, sort=False), snps, log)
 
 
 # global variable for multiprocessing
