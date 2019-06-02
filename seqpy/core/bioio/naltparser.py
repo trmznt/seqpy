@@ -116,6 +116,10 @@ class Region(object):
 
         return self.filter_positions(snpindex, inplace)
 
+    def get_mac(self):
+        allele_0 = np.count_nonzero(self.M < 0.5, axis=1)
+        allele_1 = len(self.M[0]) - allele_0
+        return np.minimum(allele_0, allele_1)
 
     def get_snpindex(self, mac = 0):
         """ get SNP index with provided criteria, please extend as necessary """
@@ -123,10 +127,7 @@ class Region(object):
         snpindexes = []
         if mac > 0:
             # get posindex whose MAC >= mac
-            allele_0 = np.count_nonzero(self.M < 0.5, axis=1)
-            allele_1 = len(self.M[0]) - allele_0
-            allele_mac = np.minimum(allele_0, allele_1)
-            snpindexes.append( np.flatnonzero( allele_mac >= mac ) )
+            snpindexes.append( np.flatnonzero( self.get_mac() >= mac ) )
 
         return functools.reduce( np.intersect1d, snpindexes)
 
