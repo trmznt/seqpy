@@ -80,7 +80,7 @@ class GroupParser(object):
             if group_column.isdigit():
                 group_column = metadf.columns[ int(group_column)-1 ]
 
-            cerr('[I: reading metafile for column: %s %s'
+            cerr('[I: reading metafile for column: %s %s]'
                     % (sample_column, group_column))
 
             sampledf = metadf.loc[:, [sample_column, group_column] ]
@@ -132,7 +132,7 @@ class GroupParser(object):
                 if k not in self.group_colours:
                     cexit('E: group %s is not assigned' % k)
 
-            cerr('I: assigning manual colours to %d groups' % (len(self.group_colours)))
+            cerr('[I: assigning manual colours to %d groups]' % (len(self.group_colours)))
 
         else:
             colour_wheel = cycle(colour_list)
