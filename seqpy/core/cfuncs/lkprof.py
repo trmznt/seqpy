@@ -224,6 +224,7 @@ class HierarchicalFSTSelector(BaseSelector):
     code = 'hfst'
 
     def __init__(self, model_id, k, guide_tree = None, min_fst = 0.9
+                    , priority = None, max_leaf_snp = 0
                     , snpindex = None, iteration = 1, seed = None):
         super().__init__(model_id, k, snpindex, iteration, seed)
 
@@ -231,6 +232,8 @@ class HierarchicalFSTSelector(BaseSelector):
             cexit('[E - HierarchicalFSTSelector requires guide tree]')
         self.guide_tree = guide_tree
         self.min_fst = min_fst
+        self.priority = priority
+        self.max_leaf_snp = max_leaf_snp
 
 
     def select(self, haplotypes, groups, haplotest, k=None):
@@ -262,10 +265,25 @@ class HierarchicalFSTSelector(BaseSelector):
 
             # NOTE: the line below might produce warning (invalid value in true_divide)
             # if den == 0, which should be perfectly ok for FST calculation
+            den[ den == 0 ] = -1
             fst = num/den
 
-            fst[ np.isnan(fst) ] = 0
-            sortidx = np.argsort( fst )
+            # check for FST == 1.0
+            ultimate_fst_pos = np.nonzero( fst == 1.0 )[0]
+            if len(ultimate_fst_pos) > 0:
+                self.log('FST: 1.0 at %s for pop %s <> %s' % (str(ultimate_fst_pos), pop1, pop2))
+
+            if len(ultimate_fst_pos) > k and self.priority is not None:
+                # get ultimate_fst based on priority
+
+                ultimate_priority = self.priority[ ultimate_fst_pos ]
+                sortidx = ultimate_fst_pos[ np.argsort( ultimate_priority ) ]
+
+                #import IPython; IPython.embed()
+
+            else:
+                #fst[ np.isnan(fst) ] = 0
+                sortidx = np.argsort( fst )
 
             # get highest FST
             highest_fst_pos = sortidx[-(k+1):-1]
@@ -273,10 +291,34 @@ class HierarchicalFSTSelector(BaseSelector):
             #cerr('[I - highest FST: %5.4f at %d for pops %s and %s' % (highest_fst_val, highest_fst_pos, pop1, pop2))
 
             # check suitability of SNPs
+            snplist, F = None, -1
             if highest_fst_val.max() < self.min_fst:
 
-                snplist, F = self.select_2(haplotypes1, haplotypes2)
-                if snplist:
+                if self.max_leaf_snp > k:
+
+                    X_train =  np.append(haplotypes1, haplotypes2, axis=0)
+                    y_train =  np.array( [1] * len(haplotypes1) + [2] * len(haplotypes2) )
+
+                    best_iteration = (-1, None)
+                    for i in range(k, self.max_leaf_snp):
+                        features = sortidx[-(i+1):-1]
+
+                        model = FixSNPSelector('dummy', snpindex=features)
+                        lk_predictions, snplist, _, params = model.fit_and_predict(X_train
+                                                            , y_train, X_train, len(features))
+                        scores = lkprof.calculate_scores(y_train,  lk_predictions)
+
+                        F = scores.loc[ scores['REG'] == 'MIN', 'F'].values[0]
+                        if best_iteration[0] < F:
+                            best_iteration = (F, snplist)
+
+                    snplist, F = best_iteration[1], best_iteration[0]
+
+                snplist_2, F_2 = self.select_2(haplotypes1, haplotypes2)
+                if F_2 > F:
+                    snplist, F = snplist_2, F_2
+
+                if snplist is not None:
                     self.log('F: %5.4f SNP: %d for pop %s <> %s => %s'
                         % (F, len(snplist), pop1, pop2, snplist))
 
@@ -294,6 +336,8 @@ class HierarchicalFSTSelector(BaseSelector):
             # append to candidate_L
             for p in highest_fst_pos:
                 candidate_L.append( (p, level, n_pops) )
+            self.log('FST: %s SNP: %d for pop %s <> %s => %s'
+                        % (str(highest_fst_val), len(highest_fst_pos), pop1, pop2, str(highest_fst_pos)))
 
         # process candidate_L
         L = np.unique( np.array( sorted( [ x[0] for x in candidate_L] ) ) )
@@ -303,7 +347,7 @@ class HierarchicalFSTSelector(BaseSelector):
 
 
     def select_2(self, haplotypes1, haplotypes2):
-        return None, None
+        return None, -1
 
 
 class HHFSTDTSelector(HierarchicalFSTSelector):
@@ -313,9 +357,11 @@ class HHFSTDTSelector(HierarchicalFSTSelector):
 
     def __init__(self, model_id, k, guide_tree = None, min_fst = 0.9
                     , max_depth=None, min_samples_leaf=2
+                    , priority = None, max_leaf_snp = 0
                     , snpindex = None, iteration = 1, seed = None):
 
-        super().__init__(model_id, k, guide_tree, min_fst, snpindex, iteration, seed)
+        super().__init__(model_id, k, guide_tree, min_fst, priority, max_leaf_snp
+                            , snpindex, iteration, seed)
         self.max_depth = max_depth
         self.min_samples_leaf = min_samples_leaf
 
