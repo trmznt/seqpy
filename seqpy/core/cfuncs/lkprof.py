@@ -454,6 +454,7 @@ def cross_validate_worker( args ):
 
         for m in models:
 
+            cerr('[I - pid %d: scoring model %s]' % (pid, m.model_id))
             scores, snplist, mlog = m.score(X, y, X, y, simid, k_fold)
 
             results.append( scores )
@@ -474,6 +475,7 @@ def cross_validate_worker( args ):
 
         for m in models:
 
+            cerr('[I - pid %d: scoring model %s]' % (pid, m.model_id))
             scores, snplist, mlog = m.score(X_train, y_train, X_test, y_test, simid, k_fold)
 
             results.append( scores )
