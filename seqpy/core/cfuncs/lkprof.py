@@ -46,6 +46,8 @@ class BaseSelector(object):
 
         # select SNPs based on model
         L, orig_predictions, params = self.select(X_train, y_train, X_test, k)
+        if len(L) <= 0:
+            return None, None, None, None
         X_train_0 = X_train[:,L]
         X_test_0 = X_test[:,L]
 
@@ -73,6 +75,8 @@ class BaseSelector(object):
 
                 lk_pred, snplist, orig_pred, params = self.fit_and_predict( genotype_train
                         , group_train, genotype_test, k)
+                if lk_pred is None:
+                    continue
 
                 scores = lkprof.calculate_scores(group_test, lk_pred
                             , EST = 'lk'
@@ -92,6 +96,9 @@ class BaseSelector(object):
                 if f_score > best_score[0]:
                     best_score = (f_score, scores, orig_scores, snplist.tolist())
 
+            if best_score[0] < 0:
+                continue
+
             results.append( best_score[1] )
             if best_score[2] is not None:
                 results.append( best_score[2] )
@@ -101,6 +108,8 @@ class BaseSelector(object):
         log += [ '[I - {%d|%s}: %s]' % (simid, self.model_id, line)
                         for line in self.flush_log() ]
 
+        if len(results) <= 0:
+            return (pd.DataFrame(), snps, log)
         return (pd.concat( results, sort=False ), snps, log)
 
 
@@ -391,6 +400,9 @@ class HHFSTDTSelector(HierarchicalFSTSelector):
             model = FixSNPSelector('dummy', snpindex=features)
             lk_predictions, snplist, _, params = model.fit_and_predict(X_train
                                                 , y_train, X_train, len(features))
+            if lk_predictions is None:
+                continue
+
             scores = lkprof.calculate_scores(y_train,  lk_predictions)
 
             f_score = scores.loc[ scores['REG'] == 'MIN', 'F'].values[0]
@@ -430,12 +442,12 @@ def create_gene_segments(region, group_keys, start_count=None):
             current_segment = Segment(posline[4], idx, idx)
             continue
         if current_segment.segment != posline[4]:
-            if current_segment.end - current_segment.begin > 5:
+            if current_segment.end - current_segment.begin > 3:
                 yield next(counter), current_segment, group_keys
             current_segment = Segment(posline[4], idx, idx)
             continue
         current_segment.end = idx
-    if current_segment.end - current_segment.begin > 5:
+    if current_segment.end - current_segment.begin > 3:
         yield next(counter), current_segment, group_keys
 
 
@@ -665,7 +677,7 @@ def run_worker(models, haplotypes, group_keys, arguments, worker_func, procs, ou
             os.remove(filename)
 
     if outfile:
-        df = pd.concat( results )
+        df = pd.concat( results, sort=False )
         df.to_csv(outfile, sep='\t', index=False)
         cerr('[I - writing scores to %s]' % outfile)
 
@@ -774,7 +786,7 @@ def cross_validate( models, haplotypes, group_keys, repeats, fold
             os.remove(filename)
 
     if outfile:
-        df = pd.concat( results )
+        df = pd.concat( results, sort=False )
         df.to_csv(outfile, sep='\t', index=False)
         cerr('[I - writing scores to %s]' % outfile)
 
