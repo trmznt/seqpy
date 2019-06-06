@@ -136,6 +136,8 @@ class FixSNPSelector(BaseSelector):
         elif snpfile:
             #self.L = np.array( [ int(x) for x in open(snpfile).read().split('\n')] )
             self.L = snpindex = np.loadtxt( snpfile, dtype=int)
+        else:
+            cerr('[Err - need snpindex or snpfile]')
         super().__init__(model_id, k, snpindex, iteration, seed)
 
     def select(self, haplotypes, groups, haplotest, k=None):
@@ -263,8 +265,8 @@ class HierarchicalFSTSelector(BaseSelector):
             FST = []
             num, den = allel.hudson_fst(ac1, ac2)
 
-            # NOTE: the line below might produce warning (invalid value in true_divide)
-            # if den == 0, which should be perfectly ok for FST calculation
+            # NOTE: the line below avoids warning (invalid value in true_divide)
+            # when den == 0, which should be perfectly ok for FST calculation
             den[ den == 0 ] = -1
             fst = num/den
 
@@ -396,6 +398,52 @@ class HHFSTDTSelector(HierarchicalFSTSelector):
         return best_score[3], best_score[0]
 
 
+class Segment(object):
+
+    def __init__(self, segment, begin, end):
+        self.segment = segment
+        self.begin = begin
+        self.end = end
+
+    def get_haplotypes(self, haplotypes):
+        #import IPython; IPython.embed()
+        return haplotypes[:, self.begin:self.end + 1]
+
+    def add_annotation(self, dataframe):
+        dataframe['SEGMENT'] = self.segment
+        return dataframe
+
+    def __repr__(self):
+        return '<Segment: %s [%d-%d]>' % (self.segment, self.begin, self.end)
+
+
+def create_gene_segments(region, group_keys, start_count=None):
+
+    current_segment = None
+    counter = itertools.count(start_count or np.random.randint(1e8))
+    c = 0
+    for idx, posline in enumerate(region.P):
+        if c > 20: break
+        if type(posline[4]) is not str:
+            continue
+        if current_segment is None:
+            current_segment = Segment(posline[4], idx, idx)
+            continue
+        if current_segment.segment != posline[4]:
+            if current_segment.end - current_segment.begin > 3:
+                c += 1
+                yield next(counter), current_segment, group_keys
+            current_segment = Segment(posline[4], idx, idx)
+            continue
+        current_segment.end = idx
+    if current_segment.end - current_segment.begin > 3:
+        yield next(counter), current_segment, group_keys
+
+
+def create_window_segments(poslines):
+    pass
+
+
 def prepare_stratified_samples(haplotypes, group_keys, k_fold, haplotype_func=None):
     """ check the suitability of sample sets and modify haplotypes and group_keys properly """
 
@@ -426,13 +474,49 @@ def prepare_stratified_samples(haplotypes, group_keys, k_fold, haplotype_func=No
     return (haplotypes, group_keys)
 
 
+def scan_segment_worker( args ):
+
+    pid = os.getpid()
+    simid, segment, y = args
+    models = var_dict['models']
+
+    cerr('[I - pid %d: cross_region_worker() started for %s]' % (pid, str(segment)) )
+
+    np.random.seed(simid % pid)
+
+    # reseed all models
+    for model in models: model.reseed(np.random.randint(1e8))
+
+    # obtain haplotype matrix
+    if var_dict['X_shape'] == None:
+        X = var_dict['X']
+    else:
+        X = np.frombuffer( var_dict['X'], dtype=np.int8 ).reshape( var_dict['X_shape'])
+
+    X_ = segment.get_haplotypes(X)
+    results = []
+    snps = {}
+    log = []
+
+    for m in models:
+
+        cerr('[I - pid %d: scoring model %s]' % (pid, m.model_id))
+        scores, snplist, mlog = m.score(X_, y, X_, y, simid, -1)
+
+        results.append( scores )
+        snps.update( snplist )
+        log += mlog
+
+    return (simid, segment.add_annotation(pd.concat(results, sort=False)), snps, log)
+
+
 def cross_validate_worker( args ):
 
     pid = os.getpid()
     y, fold, simid = args
     models = var_dict['models']
 
-    cerr('[I - pid %d: validator_worker() started]' % pid)
+    cerr('[I - pid %d: cross_validate_worker() started]' % pid)
 
     np.random.seed(simid % pid)
 
@@ -492,6 +576,109 @@ def init_worker(X, X_shape, models):
     var_dict['X'] = X
     var_dict['X_shape'] = X_shape
     var_dict['models'] = models
+
+
+def run_worker(models, haplotypes, group_keys, arguments, worker_func, procs, outfile, outsnp, logfile):
+
+    logf = None
+    if logfile:
+        logf = open(logfile, 'w')
+
+    simids = []
+
+    group_keys = np.array(group_keys) if type(group_keys) != np.ndarray else group_keys
+    if procs > 1:
+        # perform multiprocessing
+
+        # create a shared-memory for numpy array
+        cerr('[I - preparing for shared-memory numpy array]')
+        X_shape = haplotypes.shape
+        X = RawArray('b', X_shape[0]*X_shape[1])
+        X_np = np.frombuffer(X, dtype=np.int8).reshape(X_shape)
+
+        # fill share-memory with haplotypes
+        np.copyto(X_np, haplotypes)
+
+        with Pool(procs, initializer=init_worker, initargs=(X, X_shape, models)) as pool:
+            c = 0
+            for (n, result, snps, log) in pool.imap_unordered(worker_func, arguments):
+                c += 1
+                cerr('[I - receiving result from simid #%d (%d) with %d results]'
+                        % (n, c, len(result)))
+                simids.append(n)
+                # write to temporary files
+                if outfile:
+                    with open('%s.%d' % (outfile, n), 'wb') as fout:
+                        pickle.dump(result, fout, pickle.HIGHEST_PROTOCOL)
+                if outsnp:
+                    with open('%s.%d' % (outsnp, n), 'wb') as fout:
+                        pickle.dump(snps, fout, pickle.HIGHEST_PROTOCOL)
+
+                # write to log
+                if logf and log:
+                    logf.write( '\n'.join( log ) )
+                    logf.write( '\n' )
+
+    else:
+
+        init_worker( haplotypes, None, models )
+        c = 0
+        for (n, result, snps, log) in map(worker_func, arguments ):
+            c += 1
+            cerr('[I - receiving result from simid #%d (%d) with %d results]'
+                    % (n, c, len(result)))
+            simids.append(n)
+
+            # write to temporary files
+            if outfile:
+                with open('%s.%d' % (outfile, n), 'wb') as fout:
+                    pickle.dump(result, fout, pickle.HIGHEST_PROTOCOL)
+            if outsnp:
+                with open('%s.%d' % (outsnp, n), 'wb') as fout:
+                    pickle.dump(snps, fout, pickle.HIGHEST_PROTOCOL)
+
+            # write to log
+            if logf and log:
+                logf.write( '\n'.join( log ) )
+                logf.write( '\n' )
+
+    cerr('[I - combining output files]')
+    results = []
+    snp_tables = {}
+
+    for n in simids:
+
+        if outfile:
+            filename = '%s.%d' % (outfile, n)
+            with open(filename, 'rb') as fin:
+                results.append( pickle.load(fin) )
+            os.remove(filename)
+
+        if outsnp:
+            filename = '%s.%d' % (outsnp, n)
+            with open(filename, 'rb') as fin:
+                snp_tables.update( pickle.load(fin) )
+            os.remove(filename)
+
+    if outfile:
+        df = pd.concat( results )
+        df.to_csv(outfile, sep='\t', index=False)
+        cerr('[I - writing scores to %s]' % outfile)
+
+    if outsnp:
+        pickle.dump(snp_tables, open(outsnp, 'wb'))
+        cerr('[I - writing SNP table to %s]' % outsnp )
+
+
+def scan_segment(models, haplotypes, group_keys, procs, arguments, outfile, outsnp=None, logfile=None):
+
+    start_time = time.monotonic()
+    cerr('[I - scan-segment for %d model(s)]'
+        % (len(models)))
+
+    worker_func = scan_segment_worker
+    run_worker(models, haplotypes, group_keys, arguments, worker_func, procs, outfile, outsnp, logfile)
+
 
 
 def cross_validate( models, haplotypes, group_keys, repeats, fold
