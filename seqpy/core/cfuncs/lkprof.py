@@ -379,7 +379,9 @@ class HHFSTDTSelector(HierarchicalFSTSelector):
         for i in range(3):
 
             classifier = DecisionTreeClassifier(class_weight='balanced'
-                , random_state = self.randomstate, min_samples_leaf = self.min_samples_leaf)
+                , random_state = self.randomstate
+                , max_depth = self.max_depth
+                , min_samples_leaf = self.min_samples_leaf)
             classifier = classifier.fit(X_train, y_train)
             features = classifier.tree_.feature
 
