@@ -421,22 +421,19 @@ def create_gene_segments(region, group_keys, start_count=None):
 
     current_segment = None
     counter = itertools.count(start_count or np.random.randint(1e8))
-    c = 0
     for idx, posline in enumerate(region.P):
-        if c > 20: break
         if type(posline[4]) is not str:
             continue
         if current_segment is None:
             current_segment = Segment(posline[4], idx, idx)
             continue
         if current_segment.segment != posline[4]:
-            if current_segment.end - current_segment.begin > 3:
-                c += 1
+            if current_segment.end - current_segment.begin > 5:
                 yield next(counter), current_segment, group_keys
             current_segment = Segment(posline[4], idx, idx)
             continue
         current_segment.end = idx
-    if current_segment.end - current_segment.begin > 3:
+    if current_segment.end - current_segment.begin > 5:
         yield next(counter), current_segment, group_keys
 
 
