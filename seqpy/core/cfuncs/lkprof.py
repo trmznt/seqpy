@@ -497,8 +497,13 @@ def scan_segment_worker( args ):
 
     for m in models:
 
-        cerr('[I - pid %d: scoring model %s]' % (pid, m.model_id))
-        scores, snplist, mlog = m.score(X_, y, X_, y, simid, -1)
+        try:
+            cerr('[I - pid %d: scoring model %s]' % (pid, m.model_id))
+            scores, snplist, mlog = m.score(X_, y, X_, y, simid, -1)
+
+        except:
+            cerr('ERR - pid %d model %s segment %s' % (pid, m.model_id, str(segment)))
+            raise
 
         results.append( scores )
         snps.update( snplist )
