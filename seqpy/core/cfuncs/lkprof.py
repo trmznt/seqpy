@@ -451,8 +451,38 @@ def create_gene_segments(region, group_keys, start_count=None):
         yield next(counter), current_segment, group_keys
 
 
-def create_window_segments(poslines):
-    pass
+def create_window_segments(region, group_keys, window_size = 250, min_snp = 3, start_count=None):
+
+    curr_segment = None
+    counter = itertools.count(start_count or np.random.randint(1e8))
+    cur_chrom = ''
+    end_idx = last_end_idx = 0
+    max_idx = len(region.P) - 1
+    for idx, posline in enumerate(region.P):
+        #print(idx, posline)
+        chrom, pos = posline[0], posline[1]
+
+        # move end_idx until length is longer than window_size 
+        end_posline = region.P[end_idx]
+        end_chrom, end_pos = end_posline[0], end_posline[1]
+
+        while end_idx < max_idx and end_pos - pos <= window_size and end_chrom == chrom:
+            end_idx += 1
+            end_posline = region.P[end_idx]
+            end_chrom, end_pos = end_posline[0], end_posline[1]
+
+        if last_end_idx >= end_idx - 1:
+            continue
+
+        if end_idx - idx < min_snp:
+            continue
+
+        last_end_idx = end_idx - 1
+        end_posline = region.P[last_end_idx]
+        yield   ( next(counter)
+                , Segment('%s:%d/%d/%d' % (chrom, pos, end_posline[1] - pos, last_end_idx - idx+1), idx, last_end_idx)
+                , group_keys
+                )
 
 
 def prepare_stratified_samples(haplotypes, group_keys, k_fold, haplotype_func=None):
