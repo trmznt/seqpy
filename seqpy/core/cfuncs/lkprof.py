@@ -21,7 +21,7 @@ class BaseSelector(object):
 
     code = 'base'
 
-    def __init__(self, model_id, k, snpindex=None, iteration=1, seed=None):
+    def __init__(self, model_id, k=None, snpindex=None, iteration=1, seed=None):
         self.model_id = model_id
         self.k_list = k or [0]
         self.iteration = iteration
@@ -120,6 +120,13 @@ class BaseSelector(object):
         log = self.logs
         self.logs = []
         return log
+
+class AllSelector(BaseSelector):
+
+    code = 'all'
+
+    def select(self, haplotypes_train, groups_train, haplotypes_test, k=None):
+        return (np.arange(len(haplotypes_train[0])), None, {})
 
 
 class RandomSelector(BaseSelector):
