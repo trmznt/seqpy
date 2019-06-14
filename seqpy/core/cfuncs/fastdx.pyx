@@ -1,6 +1,7 @@
 
 from seqpy import cerr
 import numpy as np
+import cython
 
 def pwdist(haplotypes):
     """ calculate pairwise differences between haplotypes
@@ -29,6 +30,36 @@ def pwdist(haplotypes):
             distm[i,j] = distm[j,i] = d/c
 
     return distm
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(True)
+def pwdistm(haplotype_m):
+    """ calculate pairwise differences between haplotypes in numpy matrix format
+    """
+
+    cdef int n = len(haplotype_m)
+    cdef int m = len(haplotype_m[0])
+    cdef int i, j
+    cdef float d, c
+    cdef short x_i
+    cdef short x_j
+    cdef signed char[:,:] M = haplotype_m
+    distm = np.zeros( (n,n) )
+
+    for i in range(n):
+        cerr('I: pairwising %d' % i)
+        for j in range(i+1, n):
+            d = c = 0
+            for idx in range(m):
+                if M[i, idx] != M[j, idx]:
+                    d += 1
+                c+= 1
+            distm[i,j] = distm[j,i] = d/c
+
+    return distm
+
 
 def dxy(distm, groups, group_keys):
     """ calculate average pairwise differences inter and intra populations
