@@ -469,7 +469,7 @@ def create_window_segments(region, group_keys, window_size = 250, min_snp = 3, s
         #print(idx, posline)
         chrom, pos = posline[0], posline[1]
 
-        # move end_idx until length is longer than window_size 
+        # move end_idx until length is longer than window_size
         end_posline = region.P[end_idx]
         end_chrom, end_pos = end_posline[0], end_posline[1]
 
@@ -974,12 +974,18 @@ def calculate_scores(target, prediction, **kwargs):
         g_grp = grp[g]
         TP = g_grp[0]; FP = g_grp[2]; FN = g_grp[3]
         TN = len(prediction) - (TP+FP+FN)
+        TP_FN = (TP + FN) if (TP+FN) > 0 else 1e-5
+        TN_FP = (TN + FP) if (TN+FP) > 0 else 1e-5
+        TP_FP = (TP + FP) if (TP+FP) > 0 else 1e-5
+        TN_FN = (TN + FN) if (TN+FN) > 0 else 1e-5
         d = {
+                'TN': TN, 'FP': FP, 'TP': TP, 'FN': FN,
                 'ACC': (TP+TN)/(TP+TN+FP+FN),
-                'TPR': TP/(TP + FN) if (TP+FN) > 0 else 1e-5,
-                'TNR': TN/(TN + FP) if (TN+FP) > 0 else 1e-5,
-                'PPV': TP/(TP+FP) if (TP+FP) > 0 else 1e-5,
-                'NPV': TN/(TN+FN) if (TN+FN) > 0 else 1e-5,
+                'TPR': TP/TP_FN,
+                'TNR': TN/TN_FP,
+                'PPV': TP/TP_FP,
+                'NPV': TN/TN_FN,
+                'MCC': (TP*TN - FP*FN)/np.sqrt(TP_FP * TP_FN * TN_FP * TN_FN),
                 'REG': g
         }
         d.update( kwargs )
@@ -995,7 +1001,7 @@ def calculate_scores(target, prediction, **kwargs):
         scores[score] = ( np.median(values), np.mean(values), np.min(values) )
 
     for i, g in enumerate(['MEDIAN', 'MEAN', 'MIN']):
-        d = { 'REG': g }
+        d = { 'REG': g, 'TN': -1, 'FP': -1, 'TP': -1, 'FN': -1 }
         d.update( kwargs )
         for score in [ 'ACC', 'TPR', 'TNR', 'PPV', 'NPV', 'BACC', 'F']:
             d[score] = scores[score][i]
