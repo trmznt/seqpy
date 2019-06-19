@@ -35,7 +35,7 @@ def pwdist(haplotypes):
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-def pwdistm(haplotype_m):
+def pwdistm(haplotype_m, count_missing=False):
     """ calculate pairwise differences between haplotypes in numpy matrix format
     """
 
@@ -46,6 +46,7 @@ def pwdistm(haplotype_m):
     cdef short x_i
     cdef short x_j
     cdef signed char[:,:] M = haplotype_m
+    cdef int flag = 1 if count_missing else 0
     distm = np.zeros( (n,n) )
 
     for i in range(n):
@@ -53,9 +54,15 @@ def pwdistm(haplotype_m):
         for j in range(i+1, n):
             d = c = 0
             for idx in range(m):
+                if flag > 0:
+                    if M[i, idx] < 0 or M[j, idx] < 0:
+                        continue
                 if M[i, idx] != M[j, idx]:
                     d += 1
                 c+= 1
+            if c == 0:
+                d = 0
+                c = 1
             distm[i,j] = distm[j,i] = d/c
 
     return distm
