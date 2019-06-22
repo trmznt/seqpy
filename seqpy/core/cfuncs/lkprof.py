@@ -227,6 +227,7 @@ def traverse(tree, level=0):
 
     return [ (level, pop1, pop2) ] + next1 + next2
 
+
 def count_allele(haplotypes):
     """ return numpy array of [ [c1, c2], [c1, c2], [c1, c2], .... ] based on haplotypes """
 
@@ -724,6 +725,10 @@ def run_worker(models, haplotypes, group_keys, arguments, worker_func, procs, ou
 
 
 def scan_segment(models, haplotypes, group_keys, procs, arguments, outfile, outsnp=None, logfile=None):
+    """ models: list of model instance, with suitable score method
+        haplotypes: list of haploytpe
+        arguments:
+    """
 
     start_time = time.monotonic()
     cerr('[I - scan-segment for %d model(s)]'
