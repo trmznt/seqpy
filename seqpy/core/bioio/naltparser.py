@@ -137,6 +137,8 @@ class PositionParser(object):
     def __init__(self, args):
 
         # positions
+        if args.posfile is None:
+            cexit('ERROR: required --posfile')
         self.posfilename = args.posfile
         self.posfile = None
         self.posfile_header = None
@@ -209,10 +211,10 @@ class NAltLineParser(object):
     # 1) using pandas.read_csv (fast) or
     # 2) using numpy.fromfile (memory )
 
-    def __init__(self, args, datatype='nalt'):
+    def __init__(self, args, datatype='nalt', with_group=True, with_position=True):
 
-        self.group_parser = grpparser.GroupParser( args )
-        self.position_parser = PositionParser( args )
+        self.group_parser = grpparser.GroupParser( args ) if with_group else None
+        self.position_parser = PositionParser( args ) if with_position else None
 
         self.infile = args.infile
         self.fmt = args.fmt
@@ -272,8 +274,11 @@ class NAltLineParser(object):
         region = Region('whole')
         region.df_M = self.df
         region.M = self.M
-        region.df_P = self.position_parser.get_df()
-        region.P = self.position_parser.get_M()
+        if self.position_parser:
+            region.df_P = self.position_parser.get_df()
+            region.P = self.position_parser.get_M()
+        else:
+            region.df_P = region.P = None
 
         return region
 
