@@ -183,15 +183,18 @@ class PositionParser(object):
             yield line.strip().split('\t')
 
 
-def init_argparser(p=None):
+def init_argparser(p=None, with_group=True, with_position=True):
 
     if p is None:
         p = arg_parser('Genotype file parser')
 
-    p = grpparser.init_argparser( p )
+    if with_group:
+        p = grpparser.init_argparser( p )
 
-    p.add_argument('--posfile', default=None)
-    p.add_argument('--includepos', default='')
+    if with_position:
+        p.add_argument('--posfile', default=None)
+        p.add_argument('--includepos', default='')
+
     p.add_argument('-n', type=int, default=-1)
     p.add_argument('--fmt', default='tab', choices = ['tab', 'pickle'])
     p.add_argument('infile')
