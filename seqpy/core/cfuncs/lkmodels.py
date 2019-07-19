@@ -155,7 +155,7 @@ class FixSNPSelector(BaseSelector):
 
     def __init__(self, model_id, k=None, snpindex=None, snpfile=None, iteration=1, seed=None):
         if snpindex is not None:
-            self.L = snpindex
+            self.L = snpindex = np.array(snpindex)
         elif snpfile:
             #self.L = np.array( [ int(x) for x in open(snpfile).read().split('\n')] )
             self.L = snpindex = np.loadtxt( snpfile, dtype=int)
@@ -312,9 +312,14 @@ class HierarchicalFSTSelector(BaseSelector):
                 sortidx = np.argsort( fst )
 
             # get highest FST
-            highest_fst_pos = sortidx[-(k+1):-1]
+            #highest_fst_pos = sortidx[-(k+1):-1]
+            #highest_fst_pos = list(reversed(sortidx))[:k]
+            highest_fst_pos = sortidx[-k:]
             highest_fst_val = fst[ highest_fst_pos ]
-            #cerr('[I - highest FST: %5.4f at %d for pops %s and %s' % (highest_fst_val, highest_fst_pos, pop1, pop2))
+            #self.log('highest FST: %5.4f at %d for pops %s <> %s' % (highest_fst_val, highest_fst_pos, pop1, pop2))
+            if len(ultimate_fst_pos) > 0 and highest_fst_pos not in ultimate_fst_pos:
+                pass
+                #import IPython; IPython.embed()
 
             # check suitability of SNPs
             snplist, F = None, -1
