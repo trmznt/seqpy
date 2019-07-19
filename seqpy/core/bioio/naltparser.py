@@ -42,6 +42,9 @@ class Region(object):
         self.P.append(posinfo)
         self.M.append(n_alt)
 
+    def samples(self):
+        return list(self.df_M)
+
     def haplotypes(self):
         if self.H:
             return self.H
@@ -64,6 +67,10 @@ class Region(object):
 
     def filter_poslines(self, poslines, inplace=True):
 
+        return self.filter_positions( self.get_position_indexes(poslines), inplace )
+
+    def get_position_indexes(self, poslines):
+
         # create dictionary of [chr][pos] = index
         d = {}
         for i, line in enumerate(self.P):
@@ -84,7 +91,8 @@ class Region(object):
 
         cerr('[I - warning: only found %d out of %d positions]' % (len(indexes), counter))
 
-        return self.filter_positions( indexes, inplace )
+        return indexes
+
 
 
     def filter_positions(self, posindex, inplace=True):
@@ -106,6 +114,7 @@ class Region(object):
     def filter_samples(self, indvindex):
         self.df_M = self.df_M.iloc[:, indvindex]
         self.M = self.df_M.values
+
 
     def filter_mac(self, mac = 1, inplace=True):
 
@@ -130,6 +139,45 @@ class Region(object):
             snpindexes.append( np.flatnonzero( self.get_mac() >= mac ) )
 
         return functools.reduce( np.intersect1d, snpindexes)
+
+    def get_sample_indexes(self, samples):
+        cols = self.df_M.columns.values
+        sidx = np.argsort(cols)
+        #import IPython; IPython.embed()
+        return sidx[np.searchsorted(cols, samples, sorter=sidx)]
+
+
+    def save(self, fmt, prefixname=None, autofilename=False, with_position=False):
+
+        # we make assumption on the type of data
+        if self.M.dtype == np.int8:
+            datatype = 'nalt'
+        else:
+            datatype = 'ralt'
+
+        if autofilename:
+            prefixname = '%s-%d-%d' % (
+                    'r' if datatype == 'ralt' else 'n',
+                    len(samples), len(whole_region.M)
+            )
+
+        outmatrix = prefixname + ('.ralt' if datatype == 'ralt' else '.nalt')
+        if fmt == 'pickle':
+            outmatrix = outmatrix + '.pickle.gz'
+            whole_region.df_M.to_pickle(outmatrix)
+        elif fmt == 'npy':
+            raise NotImplementedError()
+        else:
+            outmatrix = outmatrix + '.txt.gz'
+            whole_region.df_M.to_csv(outmatrix, sep='\t', index=False)
+        cerr('[I - writing genotype data to %s]' % outmatrix)
+
+        if with_position:
+            outpos = prefixname + '.pos.txt.gz'
+            whole_region.df_P.to_csv(outpos, sep='\t', index=False)
+
+            cerr('[I - writing position data to %s]' % (outpos))
+
 
 
 class PositionParser(object):
@@ -162,6 +210,12 @@ class PositionParser(object):
     def get_M(self):
         self.read_data()
         return self.M
+
+    def get_positions(self, indexes):
+        pass
+
+    def get_indexes(self, positions):
+        pass
 
     def get_posinfo(self):
 
@@ -305,4 +359,38 @@ class NAltLineParser(object):
             new_region.append( self.P[l], self.M[l] )
 
         return new_region
+
+
+def open(filename, fmt='tab', datatype='ralt', n=-1):
+    """ simple function to open a nalt or ralt file
+    """
+
+    from types import SimpleNamespace
+    args = SimpleNamespace( infile=filename, fmt=fmt, datatype=datatype, n=n)
+    return NAltLineParser(args, with_group=False, with_position=False)
+
+
+def get_position_indexes(poslines, pos_dataframe):
+
+        # create dictionary of [chr][pos] = index
+        d = {}
+        for i, line in enumerate(pos_dataframe.values):
+            try:
+                d[line[0]][line[1]] = i
+            except KeyError:
+                d[line[0]] = { line[1]: i}
+
+        indexes = []
+        counter = 0
+        for line in poslines:
+            if not line: continue
+            try:
+                counter += 1
+                indexes.append( d[line[0]][int(line[1])])
+            except KeyError:
+                cerr('[I - warning: position not found: %s %s]' % (line[0], line[1]))
+
+        cerr('[I - warning: only found %d out of %d positions]' % (len(indexes), counter))
+
+        return indexes
 
