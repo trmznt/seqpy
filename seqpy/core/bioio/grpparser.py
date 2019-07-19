@@ -4,6 +4,7 @@ from seqpy import cout, cerr, cexit
 from seqpy.cmds import arg_parser
 
 from itertools import cycle
+import numpy as np
 
 try:
     import pandas
@@ -165,3 +166,7 @@ class GroupParser(object):
             colours.append( self.group_colours[g] )
 
         return colours
+
+
+    def indexes(self, groups):
+        return np.where(np.array(self.group_keys) == np.array(groups)[:,None])[1]
