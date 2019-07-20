@@ -167,7 +167,8 @@ class Region(object):
             self.df_M.to_pickle(outmatrix)
         elif fmt == 'npy':
             outmatrix = outmatrix + '.npy.gz'
-            with gzopen(outmatrix, 'wb') as f, np.array( [ np.array(self.df_M.columns), self.df_M.values] ) as a:
+            with gzopen(outmatrix, 'wb') as f:
+                a = np.array( [ np.array(self.df_M.columns), self.df_M.values] )
                 np.save(f, a)
         else:
             outmatrix = outmatrix + '.txt.gz'
