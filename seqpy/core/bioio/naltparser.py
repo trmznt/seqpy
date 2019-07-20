@@ -164,17 +164,19 @@ class Region(object):
         outmatrix = prefixname + ('.ralt' if datatype == 'ralt' else '.nalt')
         if fmt == 'pickle':
             outmatrix = outmatrix + '.pickle.gz'
-            whole_region.df_M.to_pickle(outmatrix)
+            self.df_M.to_pickle(outmatrix)
         elif fmt == 'npy':
-            raise NotImplementedError()
+            outmatrix = outmatrix + '.npy.gz'
+            with gzopen(outmatrix, 'wb') as f, np.array( [ np.array(self.df_M.columns), self.df_M.values] ) as a:
+                np.save(f, a)
         else:
             outmatrix = outmatrix + '.txt.gz'
-            whole_region.df_M.to_csv(outmatrix, sep='\t', index=False)
+            self.df_M.to_csv(outmatrix, sep='\t', index=False)
         cerr('[I - writing genotype data to %s]' % outmatrix)
 
         if with_position:
             outpos = prefixname + '.pos.txt.gz'
-            whole_region.df_P.to_csv(outpos, sep='\t', index=False)
+            self.df_P.to_csv(outpos, sep='\t', index=False)
 
             cerr('[I - writing position data to %s]' % (outpos))
 
@@ -300,6 +302,10 @@ class NAltLineParser(object):
 
             if self.fmt == 'pickle':
                 self.df = pd.read_pickle(self.infile)
+            elif selt.fmt == 'npy':
+                with gzopen(self.infile, 'rb') as f:
+                    a = np.load(f)
+                    self.df = pd.DataFrame(columns = a[0], data = a[1])
             else:
                 self.df = pd.read_csv(self.infile, dtype=self.dtype, delimiter='\t',
                             nrows=self.n if self.n > 0 else None)
