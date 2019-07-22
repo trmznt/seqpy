@@ -360,9 +360,11 @@ class HierarchicalFSTSelector(BaseSelector):
                 # TODO: 2nd approach: find 2 SNPs with highest r^2(st) eg r^2 subpopulation vs r^2 total population
 
 
-                # if snplist is None, just provide warning notice !
+                # if snplist is None, just provide warning notice and skip this node!
                 else:
-                    self.log('low FST = %5.4f for %s vs %s' % ( highest_fst_val.max(), pop1, pop2))
+                    self.log('low FST = %5.4f < %5.4f for %s vs %s; skipping'
+                        % ( highest_fst_val.max(), self.min_fst, pop1, pop2))
+                    continue
 
             # append to candidate_L
             for p in highest_fst_pos:
