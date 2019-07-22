@@ -303,7 +303,7 @@ class NAltLineParser(object):
 
             if self.fmt == 'pickle':
                 self.df = pd.read_pickle(self.infile)
-            elif selt.fmt == 'npy':
+            elif self.fmt == 'npy':
                 with gzopen(self.infile, 'rb') as f:
                     a = np.load(f)
                     self.df = pd.DataFrame(columns = a[0], data = a[1])
