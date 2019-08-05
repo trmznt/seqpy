@@ -59,11 +59,12 @@ class BaseSelector(object):
 
 
     def score(self, genotype_train, group_train, genotype_test, group_test, simid, k_fold):
-        """ return a dataframe containing scores and dict of snps """
+        """ return a dataframe containing scores, dict of snps, logs, and prediction result """
 
         results = []
         snps = {}
         log = []
+        preds = []
 
         for k in self.k_list:
 
@@ -99,14 +100,15 @@ class BaseSelector(object):
                             , BEGIN_SNP = begin_snp, END_SNP = end_snp
                             , **params)
 
-                f_score = scores.loc[ scores['REG'] == 'MIN', 'F'].values[0]
+                f_score = scores.loc[ scores['REG'] == 'MIN', 'MCC'].values[0]
                 if f_score > best_score[0]:
-                    best_score = (f_score, scores, orig_scores, snplist.tolist())
+                    best_score = (f_score, scores, orig_scores, snplist.tolist(), lk_pred)
 
             if best_score[0] < 0:
                 continue
 
             results.append( best_score[1] )
+            preds.append( best_score[4])
             if best_score[2] is not None:
                 results.append( best_score[2] )
             snps['%s/%d/%d/%d/%d'
@@ -116,8 +118,8 @@ class BaseSelector(object):
                         for line in self.flush_log() ]
 
         if len(results) <= 0:
-            return (pd.DataFrame(), snps, log)
-        return (pd.concat( results, sort=False ), snps, log)
+            return (pd.DataFrame(), snps, log, preds)
+        return (pd.concat( results, sort=False ), snps, log, preds)
 
 
     def log(self, text):

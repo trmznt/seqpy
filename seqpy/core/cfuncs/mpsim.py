@@ -146,7 +146,7 @@ def scan_segment_worker( args ):
 
         try:
             cerr('[I - pid %d: scoring model %s]' % (pid, m.model_id))
-            scores, snplist, mlog = m.score(X_, y, X_, y, simid, -1)
+            scores, snplist, mlog, preds = m.score(X_, y, X_, y, simid, -1)
 
         except:
             cerr('ERR - pid %d model %s segment %s' % (pid, m.model_id, str(segment)))
@@ -188,7 +188,7 @@ def cross_validate_worker( args ):
         for m in models:
 
             cerr('[I - pid %d: scoring model %s]' % (pid, m.model_id))
-            scores, snplist, mlog = m.score(X, y, X, y, simid, k_fold)
+            scores, snplist, mlog, preds = m.score(X, y, X, y, simid, k_fold)
 
             results.append( scores )
             snps.update( snplist )
@@ -209,7 +209,7 @@ def cross_validate_worker( args ):
         for m in models:
 
             cerr('[I - pid %d: scoring model %s]' % (pid, m.model_id))
-            scores, snplist, mlog = m.score(X_train, y_train, X_test, y_test, simid, k_fold)
+            scores, snplist, mlog, preds = m.score(X_train, y_train, X_test, y_test, simid, k_fold)
 
             results.append( scores )
             snps.update( snplist )
