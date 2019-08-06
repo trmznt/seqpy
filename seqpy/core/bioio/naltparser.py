@@ -253,7 +253,7 @@ def init_argparser(p=None, with_group=True, with_position=True):
         p.add_argument('--includepos', default='')
 
     p.add_argument('-n', type=int, default=-1)
-    p.add_argument('--fmt', default='tab', choices = ['tab', 'pickle'])
+    p.add_argument('--fmt', default='tab', choices = ['tab', 'pickle', 'npy'])
     p.add_argument('infile')
 
     return p
