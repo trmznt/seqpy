@@ -108,7 +108,7 @@ class BaseSelector(object):
                 continue
 
             results.append( best_score[1] )
-            preds.append( best_score[4])
+            preds.append( (k, best_score[4]) )
             if best_score[2] is not None:
                 results.append( best_score[2] )
             snps['%s/%d/%d/%d/%d'
