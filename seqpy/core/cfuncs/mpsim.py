@@ -182,8 +182,11 @@ def cross_validate_worker( args ):
     snps = {}
     k_fold = -1
     log = []
+    predictions = []
 
     if fold <= 0:
+
+        # using whole data set, no cross-validation
 
         for m in models:
 
@@ -193,14 +196,18 @@ def cross_validate_worker( args ):
             results.append( scores )
             snps.update( snplist )
             log += mlog
+            predictions.append( (m.model_id, preds) )
 
-        return (simid, pd.concat(results, sort=False), snps, log)
+        return (simid, pd.concat(results, sort=False), snps, log, predictions)
 
+    orig_y_size = len(y)
     X, y = prepare_stratified_samples(X, y, fold)
 
     skf = StratifiedKFold(n_splits = fold, shuffle=True, random_state = np.random.randint(1e8))
 
     for train_index, test_index in skf.split(X, y):
+
+        # using stratified k-fold cross validation data set
 
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
@@ -215,7 +222,26 @@ def cross_validate_worker( args ):
             snps.update( snplist )
             log += mlog
 
-    return (simid, pd.concat(results, sort=False), snps, log)
+            predictions.append( (m.model_id, test_index, preds) )
+
+        # gather prediction results from all fold and remove the duplicated samples
+
+    predictions_by_models = {}
+    for model_id, indexes, preds in predictions:
+        try:
+            model_preds = prediction_by_models[model_id]
+        except KeyError:
+            model_preds = prediction_by_models[model_id] = {}
+        for (k, values) in preds:
+            try:
+                results = model_preds[k]
+            except KeyError:
+                results = model_preds[k] = [''] * orig_y_size
+            for i, p in zip(indexes, values):
+                if i < orig_y_size:
+                    results[i] = p
+
+    return (simid, pd.concat(results, sort=False), snps, log, predictions_by_models)
 
 
 # global variable for multiprocessing
