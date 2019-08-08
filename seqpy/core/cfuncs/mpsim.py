@@ -253,13 +253,14 @@ def init_worker(X, X_shape, models):
     var_dict['models'] = models
 
 
-def run_worker(models, haplotypes, arguments, worker_func, procs, outfile, outsnp, logfile):
+def run_worker(models, haplotypes, arguments, worker_func, procs, outfile, outsnp, logfile, predfile=None):
 
     logf = None
     if logfile:
         logf = open(logfile, 'w')
 
     simids = []
+    pred_results = []
 
     if procs > 1:
         # perform multiprocessing
@@ -275,11 +276,12 @@ def run_worker(models, haplotypes, arguments, worker_func, procs, outfile, outsn
 
         with Pool(procs, initializer=init_worker, initargs=(X, X_shape, models)) as pool:
             c = 0
-            for (n, result, snps, log) in pool.imap_unordered(worker_func, arguments):
+            for (n, result, snps, log, m_preds) in pool.imap_unordered(worker_func, arguments):
                 c += 1
                 cerr('[I - receiving result from simid #%d (%d) with %d results]'
                         % (n, c, len(result)))
                 simids.append(n)
+
                 # write to temporary files
                 if outfile:
                     with open('%s.%d' % (outfile, n), 'wb') as fout:
@@ -287,6 +289,9 @@ def run_worker(models, haplotypes, arguments, worker_func, procs, outfile, outsn
                 if outsnp:
                     with open('%s.%d' % (outsnp, n), 'wb') as fout:
                         pickle.dump(snps, fout, pickle.HIGHEST_PROTOCOL)
+                if predfile:
+                    with open('%s.%d' % (predfile, n), 'wb') as fout:
+                        pickle.dump(m_preds, fout, pickle.HIGHEST_PROTOCOL)
 
                 # write to log
                 if logf and log:
@@ -297,11 +302,18 @@ def run_worker(models, haplotypes, arguments, worker_func, procs, outfile, outsn
 
         init_worker( haplotypes, None, models )
         c = 0
-        for (n, result, snps, log) in map(worker_func, arguments ):
+        for (n, result, snps, log, m_preds) in map(worker_func, arguments ):
             c += 1
             cerr('[I - receiving result from simid #%d (%d) with %d results]'
                     % (n, c, len(result)))
             simids.append(n)
+
+            import IPython; IPython.embed()
+            # m_preds = [('ALL',  [(0, [ group1, group2, ...]), ... ]) ]
+
+            # res = m_preds[0][1][0][1]
+            #
+            # actual = list(arguments[0][0])
 
             # write to temporary files
             if outfile:
@@ -310,15 +322,21 @@ def run_worker(models, haplotypes, arguments, worker_func, procs, outfile, outsn
             if outsnp:
                 with open('%s.%d' % (outsnp, n), 'wb') as fout:
                     pickle.dump(snps, fout, pickle.HIGHEST_PROTOCOL)
+            if predfile:
+                with open('%s.%d' % (predfile, n), 'wb') as fout:
+                    pickle.dump(m_preds, fout, pickle.HIGHEST_PROTOCOL)
 
             # write to log
             if logf and log:
                 logf.write( '\n'.join( log ) )
                 logf.write( '\n' )
 
+
+
     cerr('[I - combining output files]')
     results = []
     snp_tables = {}
+    predictions = []
 
     for n in simids:
 
@@ -333,6 +351,9 @@ def run_worker(models, haplotypes, arguments, worker_func, procs, outfile, outsn
             with open(filename, 'rb') as fin:
                 snp_tables.update( pickle.load(fin) )
             os.remove(filename)
+
+        if predfile:
+
 
     if outfile:
         df = pd.concat( results, sort=False )
@@ -383,3 +404,14 @@ def cross_validate(models, haplotypes, group_keys, repeats, fold
 
     cerr('[I - cross_validate() finished in %6.2f minute(s) at %s]'
             % ((time.monotonic() - start_time)/60, datetime.datetime.now()))
+
+
+def consolidate_predictions(m_preds):
+
+    # m_preds = [('ALL',  [(0, [ group1, group2, ...]), ... ]) ]
+
+
+
+    for model_id, predictions in m_preds:
+
+        for k, result_list in predictions:
