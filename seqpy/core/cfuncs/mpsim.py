@@ -2,6 +2,7 @@
 
 import itertools, time, os, pickle, datetime, math
 from multiprocessing import Pool, RawArray
+from collections import defaultdict
 
 import numpy as np, pandas as pd
 from sklearn.model_selection import StratifiedKFold
@@ -229,19 +230,24 @@ def cross_validate_worker( args ):
     predictions_by_models = {}
     for model_id, indexes, preds in predictions:
         try:
-            model_preds = prediction_by_models[model_id]
+            model_preds = predictions_by_models[model_id]
         except KeyError:
-            model_preds = prediction_by_models[model_id] = {}
+            model_preds = predictions_by_models[model_id] = {}
         for (k, values) in preds:
             try:
-                results = model_preds[k]
+                pred_results = model_preds[k]
             except KeyError:
-                results = model_preds[k] = [''] * orig_y_size
+                pred_results = model_preds[k] = [''] * orig_y_size
             for i, p in zip(indexes, values):
                 if i < orig_y_size:
-                    results[i] = p
+                    pred_results[i] = p
 
-    return (simid, pd.concat(results, sort=False), snps, log, predictions_by_models)
+    aggregate_predictions = []
+    for k in predictions_by_models:
+        aggregate_predictions.append( (k, list(predictions_by_models[k].items())) )
+
+    #import IPython; IPython.embed()
+    return (simid, pd.concat(results, sort=False), snps, log, aggregate_predictions)
 
 
 # global variable for multiprocessing
@@ -253,7 +259,7 @@ def init_worker(X, X_shape, models):
     var_dict['models'] = models
 
 
-def run_worker(models, haplotypes, arguments, worker_func, procs, outfile, outsnp, logfile, predfile=None):
+def run_worker(models, haplotypes, arguments, worker_func, procs, outfile, outsnp, logfile, outpred=None):
 
     logf = None
     if logfile:
@@ -289,8 +295,8 @@ def run_worker(models, haplotypes, arguments, worker_func, procs, outfile, outsn
                 if outsnp:
                     with open('%s.%d' % (outsnp, n), 'wb') as fout:
                         pickle.dump(snps, fout, pickle.HIGHEST_PROTOCOL)
-                if predfile:
-                    with open('%s.%d' % (predfile, n), 'wb') as fout:
+                if outpred:
+                    with open('%s.%d' % (outpred, n), 'wb') as fout:
                         pickle.dump(m_preds, fout, pickle.HIGHEST_PROTOCOL)
 
                 # write to log
@@ -308,22 +314,14 @@ def run_worker(models, haplotypes, arguments, worker_func, procs, outfile, outsn
                     % (n, c, len(result)))
             simids.append(n)
 
-            import IPython; IPython.embed()
-            # m_preds = [('ALL',  [(0, [ group1, group2, ...]), ... ]) ]
-
-            # res = m_preds[0][1][0][1]
-            #
-            # actual = list(arguments[0][0])
-
-            # write to temporary files
             if outfile:
                 with open('%s.%d' % (outfile, n), 'wb') as fout:
                     pickle.dump(result, fout, pickle.HIGHEST_PROTOCOL)
             if outsnp:
                 with open('%s.%d' % (outsnp, n), 'wb') as fout:
                     pickle.dump(snps, fout, pickle.HIGHEST_PROTOCOL)
-            if predfile:
-                with open('%s.%d' % (predfile, n), 'wb') as fout:
+            if outpred:
+                with open('%s.%d' % (outpred, n), 'wb') as fout:
                     pickle.dump(m_preds, fout, pickle.HIGHEST_PROTOCOL)
 
             # write to log
@@ -352,7 +350,11 @@ def run_worker(models, haplotypes, arguments, worker_func, procs, outfile, outsn
                 snp_tables.update( pickle.load(fin) )
             os.remove(filename)
 
-        if predfile:
+        if outpred:
+            filename = '%s.%d' % (outpred, n)
+            with open(filename, 'rb') as fin:
+                predictions.extend( pickle.load(fin) )
+            os.remove(filename)
 
 
     if outfile:
@@ -364,6 +366,10 @@ def run_worker(models, haplotypes, arguments, worker_func, procs, outfile, outsn
         pickle.dump(snp_tables, open(outsnp, 'wb'))
         cerr('[I - writing SNP table to %s]' % outsnp )
 
+    if outpred:
+        all_preds = consolidate_predictions( predictions )
+        pickle.dump(all_preds, open(outpred, 'wb'))
+        cerr('[I - writing aggregate predictions to %s]' % outpred)
 
 
 def scan_segment(models, haplotypes, group_keys, arguments
@@ -386,7 +392,7 @@ def scan_segment(models, haplotypes, group_keys, arguments
 
 
 def cross_validate(models, haplotypes, group_keys, repeats, fold
-        , outfile, outsnp=None, logfile=None, procs=1):
+        , outfile, outsnp=None, logfile=None, outpred=None, procs=1):
     """ distribute the repeats over multi process
     """
 
@@ -400,7 +406,7 @@ def cross_validate(models, haplotypes, group_keys, repeats, fold
     arguments = [ (group_keys, fold, seed+n) for n in range(repeats) ]
 
     worker_func = cross_validate_worker
-    run_worker(models, haplotypes, arguments, worker_func, procs, outfile, outsnp, logfile)
+    run_worker(models, haplotypes, arguments, worker_func, procs, outfile, outsnp, logfile, outpred)
 
     cerr('[I - cross_validate() finished in %6.2f minute(s) at %s]'
             % ((time.monotonic() - start_time)/60, datetime.datetime.now()))
@@ -410,8 +416,19 @@ def consolidate_predictions(m_preds):
 
     # m_preds = [('ALL',  [(0, [ group1, group2, ...]), ... ]) ]
 
-
+    model_predictions = {}
 
     for model_id, predictions in m_preds:
+        try:
+            current_predictions = model_predictions[model_id]
+        except KeyError:
+            current_predictions = model_predictions[model_id] = {}
 
         for k, result_list in predictions:
+            try:
+                current_predictions[k].append(result_list)
+            except KeyError:
+                current_predictions[k] = [ result_list ]
+
+    return model_predictions
+
