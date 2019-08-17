@@ -22,11 +22,11 @@ except:
 
 class Region(object):
 
-    def __init__(self, name, P=None, M=None):
+    def __init__(self, name, P=None, M=None, start_idx=1):
         self.name = name    # name of region
-        self.P = P or []        # position
+        self.P = P if P is not None else []        # position
 
-        self.M = M or []        # n_alt matrix (no of alternate allele)
+        self.M = M if M is not None else []        # n_alt matrix (no of alternate allele)
         # self.M is structured as
         # [ [ snp1_smaple1 snp1_sample2 snp1_sample3 ...]
         #    [ snp2_sample1 snp2_sample2 snp2_sample3 ...]
@@ -37,6 +37,8 @@ class Region(object):
         # [    sample1_snp1 sample1_snp2 sample1_snp3 ...
         #    sample2_snp1 sample2_snp2 sample2_snp3 ...
         # ]
+
+        self.start_idx = start_idx  # start index from original data, where applicable
 
     def append(self, posinfo, n_alt):
         self.P.append(posinfo)
@@ -158,7 +160,7 @@ class Region(object):
         if autofilename:
             prefixname = '%s-%d-%d' % (
                     'r' if datatype == 'ralt' else 'n',
-                    len(samples), len(whole_region.M)
+                    len(self.df_M.columns), len(self.M)
             )
 
         outmatrix = prefixname + ('.ralt' if datatype == 'ralt' else '.nalt')
@@ -305,7 +307,7 @@ class NAltLineParser(object):
                 self.df = pd.read_pickle(self.infile)
             elif self.fmt == 'npy':
                 with gzopen(self.infile, 'rb') as f:
-                    a = np.load(f)
+                    a = np.load(f, allow_pickle=True)
                     self.df = pd.DataFrame(columns = a[0], data = a[1])
             else:
                 self.df = pd.read_csv(self.infile, dtype=self.dtype, delimiter='\t',
@@ -352,7 +354,28 @@ class NAltLineParser(object):
         pass
 
     def parse_chromosomes(self):
-        pass
+        """ return regions of chromosomes """
+
+        cur_region = None
+        start_idx = -1
+        for i, posline in enumerate(self.position_parser.get_M()):
+            if cur_region is None:
+                cur_region = posline[0]
+                start_idx = i
+                continue
+            if cur_region != posline[0]:
+                # emit region
+                region = Region(cur_region
+                            , self.position_parser.get_df()[start_idx:i]
+                            , self.df[start_idx:i]
+                            , start_idx = start_idx )
+                cur_region = posline[0]
+                start_idx = i
+                yield region
+        yield Region(cur_region
+                            , self.position_parser.get_df()[start_idx:i]
+                            , self.df[start_idx:i]
+                            , start_idx = start_idx )
 
 
     def parse_genes(self):
