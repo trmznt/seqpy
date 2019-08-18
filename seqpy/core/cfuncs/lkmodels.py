@@ -8,7 +8,7 @@ import itertools, time, math, os, pickle, datetime
 import numpy as np, pandas as pd, pyparsing as pp
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.naive_bayes import MultinomialNB, GaussianNB
+from sklearn.naive_bayes import MultinomialNB, GaussianNB, ComplementNB, BernoulliNB
 import allel
 
 from seqpy import cout, cerr, cexit
@@ -17,11 +17,43 @@ from seqpy.core.bioio import naltparser
 from seqpy.core.cfuncs import lkest
 
 
+class ClassifierLK(object):
+
+    classifier = lambda x: lkest.SNPLikelihoodEstimator()
+    classifier_label = 'LK'
+
+class ClassifierLR(object):
+
+    classifier = lambda x: LogisticRegression()
+    classifier_label = 'LR'
+
+
+class ClassifierMNB(object):
+
+    classifier = lambda x: MultinomialNB(fit_prior=False)
+    classifier_label = 'MNB'
+
+
+class ClassifierCNB(object):
+
+    classifier = lambda x: ComplementNB()
+    classifier_label = 'CNB'
+
+
+class ClassifierGNB(object):
+
+    classifier = lambda x: GaussianNB()
+    classifier_label = 'GNB'
+
+class ClassifierBNB(object):
+
+	classifier = lambda x: BernoulliNB(binarize=1.0, fit_prior=False)
+	classifier_label = 'BNB'
+
 
 class BaseSelector(object):
 
     code = 'base'
-    classifier = lambda x: lkest.SNPLikelihoodEstimator()
 
     def __init__(self, model_id, k=None, snpindex=None, iteration=1, seed=None):
         self.model_id = model_id
@@ -92,7 +124,7 @@ class BaseSelector(object):
                     begin_snp = end_snp = -1
 
                 scores = calculate_scores(group_test, lk_pred
-                            , EST = 'lk'
+                            , EST = self.classifier_label
                             , k = len(snplist), _k = k, SELECTOR = self.code
                             , MODELID = self.model_id, SIMID = simid, FOLD = k_fold
                             , BEGIN_SNP = begin_snp, END_SNP = end_snp
@@ -136,6 +168,10 @@ class BaseSelector(object):
         log = self.logs
         self.logs = []
         return log
+
+
+
+
 
 class AllSelector(BaseSelector):
 
@@ -189,6 +225,30 @@ class FixSNPSelector(BaseSelector):
 
     def select(self, haplotypes, groups, haplotest, k=None):
         return (self.L, None, {})
+
+
+class FixSNPSelectorLK(FixSNPSelector, ClassifierLK):
+	pass
+
+
+class FixSNPSelectorLR(FixSNPSelector, ClassifierLR):
+	pass
+
+
+class FixSNPSelectorMNB(FixSNPSelector, ClassifierMNB):
+	pass
+
+
+class FixSNPSelectorCNB(FixSNPSelector, ClassifierCNB):
+	pass
+
+
+class FixSNPSelectorGNB(FixSNPSelector, ClassifierGNB):
+	pass
+
+
+class FixSNPSelectorBNB(FixSNPSelector, ClassifierBNB):
+	pass
 
 
 class DecisionTreeSelector(BaseSelector):
