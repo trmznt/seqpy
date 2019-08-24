@@ -2,6 +2,7 @@
 from seqpy import cerr, cexit
 import numpy as np
 import cython
+from numpy cimport int8_t
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -52,8 +53,8 @@ def ralt_to_nalt(r_alt, n_mdp, threshold=-1, mindp=3):
     cdef int[:] nmdp_v = n_mdp
     cdef float r
     cdef int d
-    nalt = np.empty(shape = shape, dtype=np.short)
-    cdef short[:] nalt_v = nalt
+    nalt = np.empty(shape = shape, dtype=np.int8)
+    cdef int8_t[:] nalt_v = nalt
 
     if i_threshold < 0:
         for i in range(shape):
