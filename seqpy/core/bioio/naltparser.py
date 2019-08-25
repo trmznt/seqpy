@@ -59,9 +59,9 @@ class Region(object):
         from genoutils import ralt_to_nalt
 
         if hetratio < 0:
-            n_mdp = np.array([], dtype=np.intc)
-        for i in range(len(self.M)):
-            self.M[i] = ralt_to_nalt(self.M[i], n_mdp, hetratio)
+            n_mdp = np.zeros((0,0), dtype=np.intc)
+        #for i in range(len(self.M)):
+        self.M = ralt_to_nalt(self.M, n_mdp, hetratio)
 
     def parse_positions(self):
         for i in range(len(self.M)):

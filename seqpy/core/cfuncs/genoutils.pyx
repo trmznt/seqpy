@@ -47,36 +47,42 @@ def ralt(genotypes):
 @cython.cdivision(True)
 def ralt_to_nalt(r_alt, n_mdp, threshold=-1, mindp=3):
 
-    cdef int shape = len(r_alt)
     cdef float i_threshold = threshold
-    cdef double[:] ralt_v = r_alt
-    cdef int[:] nmdp_v = n_mdp
+    cdef double[:,:] ralt_v = r_alt
+    cdef int[:,:] nmdp_v = n_mdp
     cdef float r
     cdef int d
-    nalt = np.empty(shape = shape, dtype=np.int8)
-    cdef int8_t[:] nalt_v = nalt
+    cdef int N = r_alt.shape[0]
+    cdef int L = r_alt.shape[1]
+    cdef int n
+    cdef int i
+    nalt = np.empty(shape = r_alt.shape, dtype=np.int8)
+    cdef int8_t[:,:] nalt_v = nalt
+
 
     if i_threshold < 0:
-        for i in range(shape):
-            r = ralt_v[i]
-            if r < 0:
-                nalt_v[i] = -1
-            elif r > 0.5:
-                nalt_v[i] = 2
-            else:
-                nalt_v[i] = 0
+        for n in range(N):
+            for i in range(L):
+                r = ralt_v[n,i]
+                if r < 0:
+                    nalt_v[n,i] = -1
+                elif r > 0.5:
+                    nalt_v[n,i] = 2
+                else:
+                    nalt_v[n,i] = 0
 
     else:
-        for i in range(shape):
-            r = ralt_v[i]
-            d = nmdp_v[i]
-            if r < 0:
-                nalt_v[i] = -1
-            elif i_threshold < r < (1.0 - i_threshold) and d > mindp:
-                nalt_v[i] = 1
-            elif r < 0.5:
-                nalt_v[i] = 0
-            else:
-                nalt_v[i] = 2
+        for n in range(N):
+            for i in range(L):
+                r = ralt_v[n,i]
+                d = nmdp_v[n,i]
+                if r < 0:
+                    nalt_v[n,i] = -1
+                elif i_threshold < r < (1.0 - i_threshold) and d > mindp:
+                    nalt_v[n,i] = 1
+                elif r < 0.5:
+                    nalt_v[n,i] = 0
+                else:
+                    nalt_v[n,i] = 2
 
     return nalt
