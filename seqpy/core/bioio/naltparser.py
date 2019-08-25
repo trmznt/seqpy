@@ -62,7 +62,9 @@ class Region(object):
         if hetratio < 0:
             n_mdp = np.zeros((0,0), dtype=np.intc)
         #for i in range(len(self.M)):
-        self.M = self.df_M.values = ralt_to_nalt(self.M, n_mdp, hetratio)
+        self.df_M = pd.DataFrame( ralt_to_nalt(self.M, n_mdp, hetratio)
+                , columns = self.df_M.columns )
+        self.M = self.df_M.values
 
     def parse_positions(self):
         for i in range(len(self.M)):
