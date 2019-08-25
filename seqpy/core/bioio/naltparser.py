@@ -26,6 +26,7 @@ class Region(object):
         self.name = name    # name of region
         self.P = P if P is not None else []        # position
 
+        self.df_M = None
         self.M = M if M is not None else []        # n_alt matrix (no of alternate allele)
         # self.M is structured as
         # [ [ snp1_smaple1 snp1_sample2 snp1_sample3 ...]
@@ -61,7 +62,7 @@ class Region(object):
         if hetratio < 0:
             n_mdp = np.zeros((0,0), dtype=np.intc)
         #for i in range(len(self.M)):
-        self.M = ralt_to_nalt(self.M, n_mdp, hetratio)
+        self.M = self.df_M.values = ralt_to_nalt(self.M, n_mdp, hetratio)
 
     def parse_positions(self):
         for i in range(len(self.M)):
