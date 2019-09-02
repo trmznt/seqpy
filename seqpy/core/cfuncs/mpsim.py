@@ -157,7 +157,7 @@ def scan_segment_worker( args ):
         snps.update( snplist )
         log += mlog
 
-    return (simid, segment.add_annotation(pd.concat(results, sort=False)), snps, log)
+    return (simid, segment.add_annotation(pd.concat(results, sort=False)), snps, log, [])
 
 
 def cross_validate_worker( args ):

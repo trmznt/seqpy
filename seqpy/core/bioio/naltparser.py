@@ -255,7 +255,7 @@ def init_argparser(p=None, with_group=True, with_position=True):
 
     if with_position:
         p.add_argument('--posfile', default=None)
-        p.add_argument('--includepos', default='')
+        #p.add_argument('--includepos', default='')
 
     p.add_argument('-n', type=int, default=-1)
     p.add_argument('--fmt', default='tab', choices = ['tab', 'pickle', 'npy'])
