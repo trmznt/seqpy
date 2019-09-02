@@ -17,7 +17,7 @@ class SNPProfile(object):
 
     def __init__(self, code, positions, groups):
         """ code: code name for this profile
-            positions: [ (chr, pos), (chr, pos), (<str>, <int>), ...]
+            positions: [ (chr, pos, ref, alt), (chr, pos, ref, alt), (<str>, <int>, <str>, <str>), ...]
             groups: [ grp1, grp2, grp3, <str>, ...]
         """
 
