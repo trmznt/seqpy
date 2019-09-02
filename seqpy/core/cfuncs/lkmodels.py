@@ -253,7 +253,7 @@ class FixSNPSelectorBNB(FixSNPSelector, ClassifierBNB):
 
 class DecisionTreeSelector(BaseSelector):
 
-    code = 'dt'
+    code = 'DT'
 
     def __init__(self, model_id, k=None, max_depth=None, min_samples_leaf=2
             , snpindex=None, iteration=1, seed=None):
@@ -275,6 +275,27 @@ class DecisionTreeSelector(BaseSelector):
                 )
         classifier = classifier.fit(haplotypes_train, groups_train)
         features = classifier.tree_.feature
+        d = { 'MAX_DEPTH': classifier.tree_.max_depth }
+
+        return (np.unique(features[ features >= 0]), classifier.predict(haplotypes_test), d)
+
+
+class RandomForestSelector(DecisionTreeSelector):
+
+    def select(self, haplotypes_train, groups_train, haplotypes_test, k=None):
+
+        if k <= 0:
+            k = None
+
+        classifier = RandomForestClassifier(class_weight='balanced', max_features=k
+                , random_state = self.randomstate
+                , max_depth = self.max_depth
+                , min_samples_leaf = self.min_samples_leaf
+                , n_estimator = 50
+                )
+        classifier = classifier.fit(haplotypes_train, groups_train)
+        importances = classifier.importances_        
+        features = np.where( importances > 0.15 )
         d = { 'MAX_DEPTH': classifier.tree_.max_depth }
 
         return (np.unique(features[ features >= 0]), classifier.predict(haplotypes_test), d)
