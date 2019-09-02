@@ -328,7 +328,7 @@ def count_allele(haplotypes):
     return ac
 
 
-class HierarchicalFSTSelector(BaseSelector):
+class HierarchicalFSTSelector(BaseSelector, ClassifierLK):
 
     code = 'hfst'
 
@@ -417,7 +417,7 @@ class HierarchicalFSTSelector(BaseSelector):
                     for i in range(k, self.max_leaf_snp):
                         features = sortidx[-(i+1):-1]
 
-                        model = FixSNPSelector('dummy', snpindex=features)
+                        model = FixSNPSelectorLK('dummy', snpindex=features)
                         lk_predictions, snplist, _, params = model.fit_and_predict(X_train
                                                             , y_train, X_train, len(features))
                         scores = calculate_scores(y_train,  lk_predictions)
@@ -502,7 +502,7 @@ class HHFSTDTSelector(HierarchicalFSTSelector):
             # remove features with negative position and redundant
             features = np.unique(features[ features >= 0])
 
-            model = FixSNPSelector('dummy', snpindex=features)
+            model = FixSNPSelectorLK('dummy', snpindex=features)
             lk_predictions, snplist, _, params = model.fit_and_predict(X_train
                                                 , y_train, X_train, len(features))
             if lk_predictions is None:
