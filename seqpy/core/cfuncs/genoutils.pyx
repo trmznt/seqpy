@@ -8,7 +8,7 @@ from numpy cimport int8_t
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-def ralt(genotypes):
+def ralt(genotypes, mindepth=1):
 
     cdef int shape = len(genotypes)
     cdef int gt_tot = 0
@@ -20,6 +20,7 @@ def ralt(genotypes):
     cdef short[:] gt_view
     cdef short gt_0
     cdef short gt_1
+    cdef short min_depth = mindepth
 
     for i in range(shape):
         gt_view = genotype_view[i]
@@ -28,12 +29,12 @@ def ralt(genotypes):
         gt_0 = gt_view[0]
         gt_1 = gt_view[1]
         gt_tot = gt_0 + gt_1
-        if gt_tot == 0:
+        if gt_tot < min_depth:
             data_view[i] = -1
         else:
             data_view[i] = <double> gt_0/gt_tot
             #dis = (data_view[i] - gt[0]/tot) ** 2
-            #if  dis > 1e-5: 
+            #if  dis > 1e-5:
             #    cerr('Data: %d %d %f| %d %d %f'% (gt_view[0], gt_tot, <double> gt_view[0]/gt_tot, gt[0], tot, gt[0]/tot))
 
 #                cerr('Disreparancy: %f' % dis)
@@ -45,7 +46,7 @@ def ralt(genotypes):
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-def ralt_to_nalt(r_alt, n_mdp, threshold=-1, mindp=3):
+def ralt_to_nalt(r_alt, n_mdp, threshold=-1, minmdp=3):
 
     cdef float i_threshold = threshold
     cdef double[:,:] ralt_v = r_alt
@@ -71,6 +72,19 @@ def ralt_to_nalt(r_alt, n_mdp, threshold=-1, mindp=3):
                 else:
                     nalt_v[n,i] = 0
 
+    elif minmdp <= 0:
+        for n in range(N):
+            for i in range(L):
+                r = ralt_v[n,i]
+                if r < 0:
+                    nalt_v[n,i] = -1
+                elif i_threshold < r < (1.0 - i_threshold):
+                    nalt_v[n,i] = 1
+                elif r < 0.5:
+                    nalt_v[n,i] = 0
+                else:
+                    nalt_v[n,i] = 2
+
     else:
         for n in range(N):
             for i in range(L):
@@ -78,7 +92,7 @@ def ralt_to_nalt(r_alt, n_mdp, threshold=-1, mindp=3):
                 d = nmdp_v[n,i]
                 if r < 0:
                     nalt_v[n,i] = -1
-                elif i_threshold < r < (1.0 - i_threshold) and d > mindp:
+                elif i_threshold < r < (1.0 - i_threshold) and d > minmdp:
                     nalt_v[n,i] = 1
                 elif r < 0.5:
                     nalt_v[n,i] = 0

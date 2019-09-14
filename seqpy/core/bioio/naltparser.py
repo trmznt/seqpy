@@ -55,11 +55,11 @@ class Region(object):
         self.H = np.transpose( np.array(self.M) )
         return self.H
 
-    def ralt_to_nalt(self, hetratio=0.25):
+    def ralt_to_nalt(self, hetratio=0.25, minmdp=0):
 
         from genoutils import ralt_to_nalt
 
-        if hetratio < 0:
+        if hetratio < 0 or minmdp <= 0:
             n_mdp = np.zeros((0,0), dtype=np.intc)
         #for i in range(len(self.M)):
         self.df_M = pd.DataFrame( ralt_to_nalt(self.M, n_mdp, hetratio)

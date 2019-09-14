@@ -15,15 +15,17 @@ class SNPProfile(object):
         affecting the stored data
     """
 
-    def __init__(self, code, positions, groups):
+    def __init__(self, code, positions, groups, remark=''):
         """ code: code name for this profile
             positions: [ (chr, pos, ref, alt), (chr, pos, ref, alt), (<str>, <int>, <str>, <str>), ...]
             groups: [ grp1, grp2, grp3, <str>, ...]
         """
 
+        groups = groups + ['H_0']
         self.code = code
         self.positions = positions
         self.groups = groups
+        self.remark = remark
         self.group2idx = list2dictidx(groups)
         self.pos2idx = list2dictidx(positions)
         # matrix keeps count of both ref and alt alleles
@@ -42,6 +44,8 @@ class SNPProfile(object):
 
         # filling-up matrices
         # we are iterating row wise
+        h_0_idx = self.group2idx['H_0']
+        M_h_0 = self.M[h_0_idx]
         for i, y in enumerate(Y):
             y_idx = self.group2idx[y]
             n_alt = X[i]
@@ -50,6 +54,10 @@ class SNPProfile(object):
             M_y[n_alt == 0, 0] += 2
             M_y[n_alt == 1] += 1
             M_y[n_alt == 2, 1] += 2
+            M_h_0[n_alt == 0, 0] += 2
+            M_h_0[n_alt == 1] += 1
+            M_h_0[n_alt == 2, 1] += 2
+
 
         return self
 
@@ -90,11 +98,19 @@ class SNPProfile(object):
         """ export this object to a dictionary
         """
 
-        d = { 'code': self.code, 'positions': self.positions, 'groups': self.groups}
+        d = {   'code': self.code, 'positions': self.positions
+                , 'groups': self.groups, 'remark': self.remark }
+        d['M'] = self.M
 
         # convert M to text and store as d['M']
 
         return d
+
+    @classmethod
+    def from_dict(cls, d):
+        profile = cls(code=d['code'], positions=d['positions']
+                    , groups=d['groups'], remark=d['remark'])
+        profile.M = d['M']
 
 
     def to_yaml(self, outfile):
@@ -309,6 +325,9 @@ class SNPLikelihoodEstimator(LikelihoodEstimator):
                 log_lk[i, j] = n_alt_0 + n_alt_1 + n_alt_2
 
         return log_lk
+
+    def get_profile(self):
+        return self.profile
 
 
 class HaplotypeLikelihoodEstimator(LikelihoodEstimator):
