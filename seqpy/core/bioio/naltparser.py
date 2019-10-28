@@ -145,6 +145,11 @@ class Region(object):
 
         return functools.reduce( np.intersect1d, snpindexes)
 
+
+    def get_snp_missingness(self):
+        """ return SNP missingness per sample """
+        return np.count_nonzero(self.M < 0, axis=0)
+
     def get_sample_indexes(self, samples):
         cols = self.df_M.columns.values
         sidx = np.argsort(cols)
