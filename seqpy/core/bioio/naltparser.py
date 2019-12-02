@@ -100,8 +100,8 @@ class Region(object):
 
 
 
-    def filter_positions(self, posindex, inplace=True):
-        posindex = np.sort(posindex)
+    def filter_positions(self, posindex, inplace=True, sort_position=True):
+        posindex = np.sort(posindex) if sort_position else np.array(posindex)
         if inplace:
             self.df_M = self.df_M.iloc[posindex, :]
             self.M = self.df_M.values
