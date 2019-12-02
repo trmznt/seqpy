@@ -15,13 +15,18 @@ class SNPProfile(object):
         affecting the stored data
     """
 
-    def __init__(self, code, positions, groups, remark=''):
+    def __init__(self, code, positions, groups, remark='', H0=False):
         """ code: code name for this profile
             positions: [ (chr, pos, ref, alt), (chr, pos, ref, alt), (<str>, <int>, <str>, <str>), ...]
             groups: [ grp1, grp2, grp3, <str>, ...]
         """
 
-        groups = groups + ['H_0']
+        groups = groups
+        if H0:
+            groups = groups + ['H_0']
+            self.h0 = True
+        else:
+            self.h0 = False
         self.code = code
         self.positions = positions
         self.groups = groups
@@ -44,8 +49,9 @@ class SNPProfile(object):
 
         # filling-up matrices
         # we are iterating row wise
-        h_0_idx = self.group2idx['H_0']
-        M_h_0 = self.M[h_0_idx]
+        h_0_idx = self.group2idx['H_0'] if self.h0 else -1
+        if h_0_idx > 0:
+            M_h_0 = self.M[h_0_idx]
         for i, y in enumerate(Y):
             y_idx = self.group2idx[y]
             n_alt = X[i]
@@ -54,9 +60,10 @@ class SNPProfile(object):
             M_y[n_alt == 0, 0] += 2
             M_y[n_alt == 1] += 1
             M_y[n_alt == 2, 1] += 2
-            M_h_0[n_alt == 0, 0] += 2
-            M_h_0[n_alt == 1] += 1
-            M_h_0[n_alt == 2, 1] += 2
+            if h_0_idx > 0:
+                M_h_0[n_alt == 0, 0] += 2
+                M_h_0[n_alt == 1] += 1
+                M_h_0[n_alt == 2, 1] += 2
 
 
         return self
@@ -274,8 +281,9 @@ class LikelihoodEstimator(object):
 
 class SNPLikelihoodEstimator(LikelihoodEstimator):
 
-    def __init__(self, profile=None):
+    def __init__(self, profile=None, H0=False):
         super().__init__(profile)
+        self.H0 = H0
 
     def fit(self, X, Y):
         """
@@ -289,7 +297,7 @@ class SNPLikelihoodEstimator(LikelihoodEstimator):
         uniq_Y = sorted(set(Y))
         L = len(X[0])
 
-        self.profile = SNPProfile(code='#', positions=list(range(L)), groups=uniq_Y)
+        self.profile = SNPProfile(code='#', positions=list(range(L)), groups=uniq_Y, H0=self.H0)
         self.profile.add_data(X, Y)
 
         return self
