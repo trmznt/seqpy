@@ -196,6 +196,11 @@ class AllSelectorGNB(AllSelector):
     classifier = lambda x: GaussianNB()
 
 
+class AllSelectorLK(AllSelector, ClassifierLK):
+    pass
+
+
+
 class RandomSelector(BaseSelector):
 
     code = 'rand'
@@ -251,7 +256,7 @@ class FixSNPSelectorBNB(FixSNPSelector, ClassifierBNB):
 	pass
 
 
-class DecisionTreeSelector(BaseSelector):
+class DecisionTreeSelector(BaseSelector, ClassifierLK):
 
     code = 'DT'
 
@@ -294,7 +299,7 @@ class RandomForestSelector(DecisionTreeSelector):
                 , n_estimator = 50
                 )
         classifier = classifier.fit(haplotypes_train, groups_train)
-        importances = classifier.importances_        
+        importances = classifier.importances_
         features = np.where( importances > 0.15 )
         d = { 'MAX_DEPTH': classifier.tree_.max_depth }
 
@@ -403,11 +408,15 @@ class HierarchicalFSTSelector(BaseSelector, ClassifierLK):
             if len(ultimate_fst_pos) > 0:
                 self.log('FST: 1.0 at %s for pop %s <> %s' % (str(ultimate_fst_pos), pop1, pop2))
 
-            if len(ultimate_fst_pos) > k and self.priority is not None:
+            if len(ultimate_fst_pos) > k:
+                if self.priority is not None:
                 # get ultimate_fst based on priority
 
-                ultimate_priority = self.priority[ ultimate_fst_pos ]
-                sortidx = ultimate_fst_pos[ np.argsort( ultimate_priority ) ]
+                    ultimate_priority = self.priority[ ultimate_fst_pos ]
+                    sortidx = ultimate_fst_pos[ np.argsort( ultimate_priority ) ]
+                else:
+                    np.random.shuffle(ultimate_fst_pos)
+                    sortidx = ultimate_fst_pos
 
                 #import IPython; IPython.embed()
 
