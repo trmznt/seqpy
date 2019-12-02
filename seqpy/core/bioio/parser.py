@@ -534,6 +534,23 @@ def write_embl():
     pass
 
 
+def read_flatfile(stream_file, multiseq=None, options=None, delim='\t'):
+
+    istream = generic_open(stream_file)
+    multiseq = multisequence() if multiseq == None else multiseq
+
+    for line in istream:
+        label, seq = line.split(delim, 1)
+        multiseq.append( bioseq(label, seq))
+
+    return multiseq
+
+
+def read_flatfile_csv(stream_file, multiseq=None, options=None, delim=','):
+
+    return read_flatfile(stream_file, multiseq, options, delim)
+
+
 class UnknownFormatErr(RuntimeError):
     pass
 
@@ -567,8 +584,10 @@ def guess_parser(filename):
         return read_embl, write_embl
     elif ext in [ 'ALN']:
         return read_clustalw, None
-    elif ext in [ 'TAB']:
+    elif ext in [ 'TAB', 'TSV' ]:
         return read_flatfile, None
+    elif ext in [ 'CSV' ]:
+        return read_flatfile_csv, None
     elif ext in [ 'ABI', 'AB1', 'SCF']:
         from seqpy.core import traceio
         return traceio.read_trace, None
