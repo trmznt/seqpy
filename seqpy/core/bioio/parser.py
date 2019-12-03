@@ -534,19 +534,19 @@ def write_embl():
     pass
 
 
-def read_flatfile(stream_file, multiseq=None, options=None, delim='\t'):
+def read_flatfile(stream_file, multiseq=None, options=None, delim=b'\t'):
 
     istream = generic_open(stream_file)
     multiseq = multisequence() if multiseq == None else multiseq
 
     for line in istream:
         label, seq = line.split(delim, 1)
-        multiseq.append( bioseq(label, seq))
+        multiseq.append( biosequence(label, seq))
 
     return multiseq
 
 
-def read_flatfile_csv(stream_file, multiseq=None, options=None, delim=','):
+def read_flatfile_csv(stream_file, multiseq=None, options=None, delim=b','):
 
     return read_flatfile(stream_file, multiseq, options, delim)
 
