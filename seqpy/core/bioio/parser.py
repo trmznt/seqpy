@@ -541,7 +541,7 @@ def read_flatfile(stream_file, multiseq=None, options=None, delim=b'\t'):
 
     for line in istream:
         label, seq = line.split(delim, 1)
-        multiseq.append( biosequence(label, seq))
+        multiseq.append( biosequence(label, seq.strip()))
 
     return multiseq
 
