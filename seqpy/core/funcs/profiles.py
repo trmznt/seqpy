@@ -35,7 +35,7 @@ class SeqProfile(object):
                     for c in chars:
                         idx = char_set[c]
                         cons[i, idx] += ratio
-                else: raise RuntimeError("Unknown char: %s" % seq[i])
+                else: raise RuntimeError("Unknown char: %s in sample %s" % (seq[i], s.label))
 
     def normalize(self):
         cons = self.mat
