@@ -359,9 +359,13 @@ class HierarchicalFSTSelector(BaseSelector, ClassifierLK):
     code = 'hfst'
 
     def __init__(self, model_id, k, guide_tree = None, min_fst = 0.9
-                    , priority = None, max_leaf_snp = 0
+                    , ultimate_fst = 1.0, priority = None, max_leaf_snp = 0
                     , snpindex = None, iteration = 1, seed = None):
         super().__init__(model_id, k, snpindex, iteration, seed)
+        """
+            min_fst: the minimum FST before using select_2() (alternate SNP selection)
+            ultimate_fst: the minimun FST to be prioritized for selection
+        """
 
         if guide_tree is None:
             cexit('[E - HierarchicalFSTSelector requires guide tree]')
@@ -369,6 +373,7 @@ class HierarchicalFSTSelector(BaseSelector, ClassifierLK):
         self.min_fst = min_fst
         self.priority = priority
         self.max_leaf_snp = max_leaf_snp
+        self.ultimate_fst = ultimate_fst
 
 
     def select(self, haplotypes, groups, haplotest, k=None):
@@ -404,9 +409,10 @@ class HierarchicalFSTSelector(BaseSelector, ClassifierLK):
             fst = num/den
 
             # check for FST == 1.0
-            ultimate_fst_pos = np.nonzero( fst == 1.0 )[0]
+            ultimate_fst_pos = np.nonzero( fst >= self.ultimate_fst )[0]
             if len(ultimate_fst_pos) > 0:
-                self.log('FST: 1.0 at %s for pop %s <> %s' % (str(ultimate_fst_pos), pop1, pop2))
+                self.log('FST: %3.2f at %s for pop %s <> %s' % (
+                    self.ultimate_fst, str(ultimate_fst_pos), pop1, pop2))
 
             if len(ultimate_fst_pos) > k:
                 if self.priority is not None:
@@ -502,11 +508,11 @@ class HHFSTDTSelector(HierarchicalFSTSelector):
 
 
     def __init__(self, model_id, k, guide_tree = None, min_fst = 0.9
-                    , max_depth=None, min_samples_leaf=2
+                    , ultimate_fst=1.0, max_depth=None, min_samples_leaf=2
                     , priority = None, max_leaf_snp = 0
                     , snpindex = None, iteration = 1, seed = None):
 
-        super().__init__(model_id, k, guide_tree, min_fst, priority, max_leaf_snp
+        super().__init__(model_id, k, guide_tree, min_fst, ultimate_fst, priority, max_leaf_snp
                             , snpindex, iteration, seed)
         self.max_depth = max_depth
         self.min_samples_leaf = min_samples_leaf
