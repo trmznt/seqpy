@@ -173,3 +173,7 @@ class multisequence(object):
                 return False
         return True
 
+
+    def degap(self):
+        for s in self:
+            s.degap()

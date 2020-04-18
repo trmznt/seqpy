@@ -9,6 +9,7 @@ def init_argparser():
     p = arg_parser("read from various sequence format")
     p.add_argument('-o', '--outfile')
     p.add_argument('--src-isolate', action='store_true')
+    p.add_argument('--degap', action='store_true', default=False)
     p.add_argument('--src', action='append')
     p.add_argument('--definition')
     p.add_argument('--summary', action='store_true')
@@ -40,6 +41,9 @@ def main( args ):
 
     if args.accno:
         set_label_to_accno( container )
+
+    if args.degap:
+        container.degap()
 
     if args.minlen > 0 or args.maxlen > 0 or args.maxN > 0:
         new_container = bioio.multisequence()
