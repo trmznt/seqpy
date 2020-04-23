@@ -192,12 +192,17 @@ def cross_validate_worker( args ):
         for m in models:
 
             cerr('[I - pid %d: scoring model %s]' % (pid, m.model_id))
+            log.append( '[** scoring model %s #%d **]' %
+                ( m.model_id, simid ) )
+            start = time.monotonic()
             scores, snplist, mlog, preds = m.score(X, y, X, y, simid, k_fold)
 
             results.append( scores )
             snps.update( snplist )
             log += mlog
             predictions.append( (m.model_id, preds) )
+            log.append( '[** scoring model %s #%d for %6.2f minute(s) **]' %
+                (m.model_id, simid, (time.monotonic() - start)/60))
 
         return (simid, pd.concat(results, sort=False), snps, log, predictions)
 
@@ -261,6 +266,7 @@ def init_worker(X, X_shape, models):
 
 def run_worker(models, haplotypes, arguments, worker_func, procs, outfile, outsnp, logfile, outpred=None):
 
+    start = time.monotonic()
     logf = None
     if logfile:
         logf = open(logfile, 'w')
@@ -371,6 +377,11 @@ def run_worker(models, haplotypes, arguments, worker_func, procs, outfile, outsn
         pickle.dump(all_preds, open(outpred, 'wb'))
         cerr('[I - writing aggregate predictions to %s]' % outpred)
 
+    if logf:
+        logf.write( '[I - process run for %6.2f minute(s)]\n'
+            % ((time.monotonic() - start)/60) )
+
+
 
 def scan_segment(models, haplotypes, group_keys, arguments
         , outfile, outsnp=None, logfile=None, procs=1):
@@ -400,7 +411,7 @@ def cross_validate(models, haplotypes, group_keys, repeats, fold
     cerr('[I - cross_validate() for %d model(s)]'
         % (len(models)))
 
-    seed = np.random.randint(1e7)
+    seed =  np.random.randint( 1e8 ) 
     group_keys = np.array(group_keys) if type(group_keys) != np.ndarray else group_keys
 
     arguments = [ (group_keys, fold, seed+n) for n in range(repeats) ]
