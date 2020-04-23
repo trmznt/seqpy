@@ -177,3 +177,15 @@ class multisequence(object):
     def degap(self):
         for s in self:
             s.degap()
+
+
+    def shrink_gap(self):
+        """ remove column with - (gap) in alignment """
+        l = len(self[0])
+        for i in range(l-1, 0, -1):
+            for s in self:
+                if s[i] != 45:
+                    break
+            else:
+                for s in self:
+                    del s[i]
