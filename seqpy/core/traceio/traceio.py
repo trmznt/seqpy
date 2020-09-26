@@ -151,8 +151,8 @@ def read_scf_stream(istream):
         comment_size, comment_off, version, sample_size, code_set,
         private_size, private_off) = struct.unpack( fmt, bdata[:block_size] )
 
-    print('Version:', version)
-    print('Sample size:', sample_size)
+    # print('Version:', version)
+    # print('Sample size:', sample_size)
 
     if magic != b'.scf':
         cerr( "Warning: Not an SCF file" )
@@ -247,7 +247,6 @@ def read_scf_stream(istream):
     d[ord('-')] = d[ord('n')] = d[ord('N')] = trace.prob_A
     # print trace.bases
     trace.quality = []
-    print(trace.prob_C)
     for i in range(0, base_num):
         try:
             trace.quality.append( d[trace.bases[i]][i] )
