@@ -151,8 +151,8 @@ def read_scf_stream(istream):
         comment_size, comment_off, version, sample_size, code_set,
         private_size, private_off) = struct.unpack( fmt, bdata[:block_size] )
 
-    #print 'Version:', version
-    #print 'Sample size:', sample_size
+    print('Version:', version)
+    print('Sample size:', sample_size)
 
     if magic != b'.scf':
         cerr( "Warning: Not an SCF file" )
@@ -166,61 +166,93 @@ def read_scf_stream(istream):
         fmt = ">%dh" % (sample_num*4)
     trace_samples = list(struct.unpack( fmt,
         bdata[sample_off : sample_off + struct.calcsize(fmt)] ))
-    trace.trace_A, trace.trace_C, trace.trace_G, trace.trace_T = (
-        trace_samples[:sample_num], trace_samples[sample_num:2*sample_num],
-        trace_samples[2*sample_num:3*sample_num], trace_samples[3*sample_num:4*sample_num] )
 
-    # get the bases
+    if version[0] == b'3'[0]:
 
-    offset = base_off
-    fmt = ">%dL" % base_num
-    datasize = struct.calcsize(fmt)
-    trace.basecalls = struct.unpack(fmt, bdata[ offset : offset + datasize ])
-    offset += datasize
+        trace.trace_A, trace.trace_C, trace.trace_G, trace.trace_T = (
+            trace_samples[:sample_num], trace_samples[sample_num:2*sample_num],
+            trace_samples[2*sample_num:3*sample_num], trace_samples[3*sample_num:4*sample_num] )
 
-    fmt = ">%db" % base_num
-    datasize = struct.calcsize(fmt)
-    trace.prob_A = struct.unpack( fmt, bdata[ offset : offset + datasize ] )
-    offset += datasize
-    trace.prob_C = struct.unpack( fmt, bdata[ offset : offset + datasize ] )
-    offset += datasize
-    trace.prob_G = struct.unpack( fmt, bdata[ offset : offset + datasize ] )
-    offset += datasize
-    trace.prob_T = struct.unpack( fmt, bdata[ offset : offset + datasize ] )
-    offset += datasize
+        # get the bases
 
-    trace.bases = struct.unpack( "%ds" % base_num, bdata[ offset : offset + base_num] )[0]
+        offset = base_off
+        fmt = ">%dL" % base_num
+        datasize = struct.calcsize(fmt)
+        trace.basecalls = struct.unpack(fmt, bdata[ offset : offset + datasize ])
+        offset += datasize
 
-    def normalize_trace(traces, sample_num):
-        p_sample = 0
-        for i in range(0, sample_num):
-            traces[i] = traces[i] + p_sample
-            p_sample = traces[i]
-        for i in range(0, sample_num):
-            traces[i] = traces[i] + p_sample
-            p_sample = traces[i]
+        fmt = ">%db" % base_num
+        datasize = struct.calcsize(fmt)
+        trace.prob_A = struct.unpack( fmt, bdata[ offset : offset + datasize ] )
+        offset += datasize
+        trace.prob_C = struct.unpack( fmt, bdata[ offset : offset + datasize ] )
+        offset += datasize
+        trace.prob_G = struct.unpack( fmt, bdata[ offset : offset + datasize ] )
+        offset += datasize
+        trace.prob_T = struct.unpack( fmt, bdata[ offset : offset + datasize ] )
+        offset += datasize
 
-    for traces in (trace.trace_A, trace.trace_C, trace.trace_G, trace.trace_T):
-        normalize_trace(traces, sample_num)
-        min_value = min(traces)
-        delta = 0 - min_value
-        for i in range(0, sample_num):
-            traces[i] += delta
+        trace.bases = struct.unpack( "%ds" % base_num, bdata[ offset : offset + base_num] )[0]
+
+        def normalize_trace(traces, sample_num):
+            p_sample = 0
+            for i in range(0, sample_num):
+                traces[i] = traces[i] + p_sample
+                p_sample = traces[i]
+            for i in range(0, sample_num):
+                traces[i] = traces[i] + p_sample
+                p_sample = traces[i]
+
+        for traces in (trace.trace_A, trace.trace_C, trace.trace_G, trace.trace_T):
+            normalize_trace(traces, sample_num)
+            min_value = min(traces)
+            delta = 0 - min_value
+            for i in range(0, sample_num):
+                traces[i] += delta
+
+    elif version[0] == b'2'[0]:
+
+        trace.trace_A = trace_samples[0::4]
+        trace.trace_C = trace_samples[1::4]
+        trace.trace_G = trace_samples[2::4]
+        trace.trace_T = trace_samples[3::4]
+
+        fmt = '>L4Bs3B'
+        datasize = struct.calcsize(fmt)
+
+        trace.basecalls = []
+        trace.prob_A = []
+        trace.prob_C = []
+        trace.prob_G = []
+        trace.prob_T = []
+        bases = []
+
+        for i in range(base_num):
+            values = struct.unpack( fmt, bdata[base_off + datasize*i: base_off + datasize*(i+1)])
+            trace.basecalls.append( values[0] )
+            trace.prob_A.append( values[1] )
+            trace.prob_C.append( values[2] )
+            trace.prob_G.append( values[3] )
+            trace.prob_T.append( values[4] )
+            bases.append( values[5] )
+
+        trace.bases = b''.join(bases)
 
     # set the quality
     d = {}
-    d['a'] = d['A'] = trace.prob_A
-    d['c'] = d['C'] = trace.prob_C
-    d['g'] = d['G'] = trace.prob_G
-    d['t'] = d['T'] = trace.prob_T
-    d['-'] = d['n'] = d['N'] = trace.prob_A
+    d[ord('a')] = d[ord('A')] = trace.prob_A
+    d[ord('c')] = d[ord('C')] = trace.prob_C
+    d[ord('g')] = d[ord('G')] = trace.prob_G
+    d[ord('t')] = d[ord('T')] = trace.prob_T
+    d[ord('-')] = d[ord('n')] = d[ord('N')] = trace.prob_A
     # print trace.bases
     trace.quality = []
+    print(trace.prob_C)
     for i in range(0, base_num):
         try:
             trace.quality.append( d[trace.bases[i]][i] )
         except KeyError:
-            trace.quality.append( d['a'][i] )
+            trace.quality.append( d[ord('a')][i] )
 
     comments = bdata[comment_off:comment_off + comment_size]
     if comments:
