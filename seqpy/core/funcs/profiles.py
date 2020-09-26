@@ -37,6 +37,34 @@ class SeqProfile(object):
                         cons[i, idx] += ratio
                 else: raise RuntimeError("Unknown char: %s in sample %s" % (seq[i], s.label))
 
+    def update(self, mseq, weights = None):
+
+        char_set = { self.char_set[i]: i for i in range(len(self.char_set)) }
+        if weights == None:
+            weights = [1.0] * len(mseq)
+
+        if self.mat is None:
+            import numpy
+            charset_len = len(self.char_set)
+            max_seqlen = mseq.max_seqlen()
+            self.mat = numpy.empty( (max_seqlen, charset_len), numpy.float )
+            self.mat.fill(self.apriori)
+
+        cons = self.mat
+        for s, w in zip(mseq, weights):
+            seq = s.seq.upper()
+            for i in range(0, len(seq)):
+                idx = char_set.get(seq[i], -1)
+                if idx >= 0: cons[i, idx] += 1*w
+                elif seq[i] in self.ign_set: pass
+                elif self.iupac_set and seq[i] in self.iupac_set:
+                    chars = self.iupac_set[seq[i]]
+                    ratio = 1.0 / len(chars)
+                    for c in chars:
+                        idx = char_set[c]
+                        cons[i, idx] += ratio*w
+                else: raise RuntimeError("Unknown char: %s in sample %s" % (seq[i], s.label))
+
     def normalize(self):
         cons = self.mat
         for i in range(0, len(cons)):
@@ -44,7 +72,7 @@ class SeqProfile(object):
             if sum_pos < 1.0: continue    # no characters here
             cons[i] = cons[i]/sum_pos
 
-    def consensus(self, threshold = 0.5, ref=None):
+    def consensus(self, threshold = 0.5, ref=None, non_consensus = None):
         """ return a consensus sequence """
 
         cons_seq = bytearray()
@@ -53,7 +81,10 @@ class SeqProfile(object):
         for i in range(0, len(cons)):
             max_pos = cons[i].argmax()
             if cons[i, max_pos] < threshold:
-                c = char_set[max_pos] + 32 if 64 < char_set[max_pos] < 91 else char_set[max_pos]
+                if non_consensus:
+                    c = non_consensus
+                else:
+                    c = char_set[max_pos] + 32 if 64 < char_set[max_pos] < 91 else char_set[max_pos]
             else:
                 c = char_set[max_pos]
             if ref and ref[i] == c:
