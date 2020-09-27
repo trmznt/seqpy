@@ -7,6 +7,8 @@ from seqpy.core.traceio import traceutils
 def init_argparser():
 
     p = arg_parser('trimming capillary read and save as fasta file (fastq in future)')
+    p.add_argument('--winsize', type=int, default=10)
+    p.add_argument('--qual_threshold', type=int, default=20)
     p.add_argument('-o', '--outfile')
     p.add_argument('files', nargs='+')
     return p
@@ -18,7 +20,7 @@ def main(args):
 
     for infile in args.files:
         trace = bioio.load( infile )
-        result = traceutils.trim( trace )
+        result = traceutils.trim( trace, args.winsize, args.qual_threshold )
         if not result:
             continue
 
