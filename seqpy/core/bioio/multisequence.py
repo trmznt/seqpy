@@ -137,6 +137,7 @@ class multisequence(object):
 
     def __add__(self, obj):
         self.extend( obj )
+        return self
 
 
     def add_control(self, label, values):
