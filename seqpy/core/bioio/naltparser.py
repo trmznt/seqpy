@@ -70,9 +70,9 @@ class Region(object):
         for i in range(len(self.M)):
             yield (self.P[i], self.M[i])
 
-    def filter_poslines(self, poslines, inplace=True):
+    def filter_poslines(self, poslines, inplace=True, sort_position=True):
 
-        return self.filter_positions( self.get_position_indexes(poslines), inplace )
+        return self.filter_positions( self.get_position_indexes(poslines), inplace, sort_position )
 
     def get_position_indexes(self, poslines):
 
