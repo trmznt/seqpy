@@ -25,6 +25,9 @@ class multisequence(object):
         self._type = None
 
 
+    def addseq(self, label, seq):
+        self.append( biosequence(label, seq) )
+
     def append(self, seq):
         """ append a new sequence """
         self.seqs.append( seq )
