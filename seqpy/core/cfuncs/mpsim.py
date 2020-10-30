@@ -168,6 +168,9 @@ def cross_validate_worker( args ):
 
     cerr('[I - pid %d: cross_validate_worker() started]' % pid)
 
+    # decrease simid collision across process
+    simid = simid * 10 + int(time.time() % 10)
+
     np.random.seed(simid % pid)
 
     # reseed all models
