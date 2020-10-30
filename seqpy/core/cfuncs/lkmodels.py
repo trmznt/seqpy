@@ -126,7 +126,7 @@ class BaseSelector(object):
                 scores = calculate_scores(group_test, lk_pred
                             , EST = self.classifier_label
                             , k = len(snplist), _k = k, SELECTOR = self.code
-                            , MODELID = self.model_id, SIMID = simid, FOLD = k_fold
+                            , SET = self.model_id, SIMID = simid, FOLD = k_fold
                             , BEGIN_SNP = begin_snp, END_SNP = end_snp
                             , **params)
 
@@ -135,7 +135,7 @@ class BaseSelector(object):
                         orig_scores = calculate_scores(group_test, orig_pred
                             , EST = self.code
                             , k = len(snplist), _k = k, SELECTOR = self.code
-                            , MODELID = self.model_id, SIMID = simid, FOLD = k_fold
+                            , SET = self.model_id, SIMID = simid, FOLD = k_fold
                             , BEGIN_SNP = begin_snp, END_SNP = end_snp
                             , **params)
 
