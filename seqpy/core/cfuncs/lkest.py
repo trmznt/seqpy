@@ -29,7 +29,7 @@ class SNPProfile(object):
             self.h0 = False
         self.code = code
         self.positions = positions
-        self.groups = groups
+        self.groups = np.array(groups)
         self.remark = remark
         self.group2idx = list2dictidx(groups)
         self.pos2idx = list2dictidx(positions)
@@ -307,6 +307,25 @@ class SNPLikelihoodEstimator(LikelihoodEstimator):
         loglks = self.calculate_loglks(X)
         grp_indexes = np.argmax(loglks, axis=1)
         return [ self.profile.groups[idx] for idx in grp_indexes ]
+
+
+    def predict_proba_partition(self, X, kth=2):
+        loglks = self.calculate_loglks(X)
+        lks = np.e ** loglks
+        total_lks = lks.sum( axis=1 )
+        grp_indexes = np.argpartition(loglks, -kth, axis=1)[:,-kth:]
+
+        predictions = []
+        proba = []
+        smallest_positive_real = np.finfo(float).tiny
+        for i in range(len(X)):
+            sorted_indexes = grp_indexes[ i, np.argsort( loglks[i, grp_indexes[i]] )[::-1] ]
+            predictions.append( self.profile.groups[ sorted_indexes ])
+            lks_i = lks[i, sorted_indexes]
+            lks_ratio = lks_i / (total_lks[i] - lks_i + smallest_positive_real )
+            proba.append( lks_ratio / (lks_ratio + 1) )
+
+        return predictions, proba
 
 
     def calculate_loglks(self, X):

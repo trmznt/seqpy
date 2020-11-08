@@ -365,6 +365,8 @@ class HierarchicalFSTSelector(BaseSelector, ClassifierLK):
         """
             min_fst: the minimum FST before using select_2() (alternate SNP selection)
             ultimate_fst: the minimun FST to be prioritized for selection
+            priority: index of SNPs to be prioritized for selection (after filtering
+                        by ultimate_fst)
         """
 
         if guide_tree is None:
@@ -526,7 +528,7 @@ class HHFSTDTSelector(HierarchicalFSTSelector):
         y_train =  np.array( [1] * len(haplotypes1) + [2] * len(haplotypes2) )
 
         best_score = (-1, None, None, None)
-        for i in range(3):
+        while best_score[0] < 0.75:
 
             classifier = DecisionTreeClassifier(class_weight='balanced'
                 , random_state = self.randomstate
@@ -546,9 +548,9 @@ class HHFSTDTSelector(HierarchicalFSTSelector):
 
             scores = calculate_scores(y_train,  lk_predictions)
 
-            f_score = scores.loc[ scores['REG'] == 'MIN', 'MCC'].values[0]
-            if f_score > best_score[0]:
-                best_score = (f_score, scores, None, features.tolist())
+            mcc_score = scores.loc[ scores['REG'] == 'MIN', 'MCC'].values[0]
+            if mcc_score > best_score[0]:
+                best_score = (mcc_score, scores, None, features.tolist())
 
         return best_score[3], best_score[0]
 

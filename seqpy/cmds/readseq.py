@@ -61,6 +61,8 @@ def main( args ):
     if args.sort:
         if args.sort.startswith('len'):
             container.sort(lambda x: len(x), reverse=True)
+        elif args.sort.startswith('lab'):
+            container.sort(lambda x: x.label)
 
     if args.summary:
         for s in container:
