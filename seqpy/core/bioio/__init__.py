@@ -16,15 +16,16 @@ from .seqtype import DNA, RNA, PROTEIN
 from .biosequence import biosequence
 from .multisequence import multisequence
 
-def load(filename, options={}):
+def load(filename, options={}, fmt=None):
     reader, _ = guess_parser(filename)
     return reader(filename, options=options)
 
-def save(obj, filename=None, options={} ):
+def save(obj, filename=None, options={}, fmt=None ):
     if not filename:
         filename = obj.filename
     else:
         obj.filename = filename
+
     _, writer = guess_parser(filename)
     writer(filename, obj, options=options)
 
