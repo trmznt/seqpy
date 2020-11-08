@@ -166,6 +166,23 @@ def calculate_distance( mseq, func=None ):
             M[i,j] = M[j,i] = func( mseq[i], mseq[j] )
     return M
 
+def search_restriction_site(seq, pattern, max_unmatches=0):
+
+    j_range = range(len(pattern))
+    pos = []
+    for i in range(len(seq)-len(pattern)):
+        matches = 0
+        for j in j_range:
+            if seq[i+j] == pattern[j]:
+                matches += 1
+            elif pattern[j] in NA_IUPAC:
+                opts = pattern[j]
+                if seq[i+j] in opts:
+                    matches += 1
+        if (len(pattern) - matches) <= max_unmatches:
+            pos.append( (i, len(pattern) - matches) )
+
+    return pos
 
 # bytes & string converter stuff
 
