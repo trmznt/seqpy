@@ -166,7 +166,8 @@ def calculate_distance( mseq, func=None ):
             M[i,j] = M[j,i] = func( mseq[i], mseq[j] )
     return M
 
-def search_restriction_site(seq, pattern, max_unmatches=0):
+def search_na_site(seq, pattern, max_unmatches=0):
+    "return list of (pos, mismatch score)"
 
     j_range = range(len(pattern))
     pos = []
