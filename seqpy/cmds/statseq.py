@@ -1,3 +1,4 @@
+#!/usr/bin/env spcli
 
 from seqpy import cout, cerr
 from seqpy.core import bioio
@@ -15,26 +16,20 @@ def init_argparser():
 
 def main( args ):
 
+    statseq( args )
+
+def statseq( args ):
+
     mseq = bioio.load( args.infile, options = args.io_opts or [] )
 
-    print('Number of seqs: %d' % len(mseq))
+    for s in mseq:
+        seq = s.seq.upper()
+        A_ = seq.count(b'A')
+        C_ = seq.count(b'C')
+        G_ = seq.count(b'G')
+        T_ = seq.count(b'T')
+        N_ = seq.count(b'N')
+        d_ = seq.count(b'-')
+        L = A_ + C_ + G_ + T_ + N_ + d_
 
-    # get unique haplotype and sample cluster
-
-    haplotypes = {}
-    for seq in mseq:
-        seq_hash = sha256(seq.seq)
-        try:
-            haplotypes[seq_hash].append( seq.label )
-        except KeyError:
-            haplotypes[seq_hash] = [ seq.label ]
-
-    print('Number of unique haplotypes: %d' % len(haplotypes))
-
-    for (idx, item) in enumerate( haplotypes.items() ):
-        k, v = item
-        print('Haplo %d =>' % idx)
-        for label in v:
-            print('  %s' % label)
-
-
+        cout('A: %3d  C: %3d  G: %3d  T: %3d  N: %3d  -: %3d  L: %3d  |  \t%s' % (A_, C_, G_, T_, N_, d_, L, s.label))
