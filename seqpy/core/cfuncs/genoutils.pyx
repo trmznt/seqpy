@@ -14,9 +14,11 @@ def ralt(genotypes, mindepth=1):
     cdef int gt_tot = 0
     data = np.empty(shape = shape, dtype=np.double)
     read = np.empty(shape = shape, dtype=np.short)
+    depth = np.empty(shape = shape, dtype=np.ushort)
     cdef short[:, :] genotype_view = genotypes
     cdef double[:] data_view = data
     cdef short[:] read_view = read
+    cdef unsigned short [:] depth_view = depth
     cdef short[:] gt_view
     cdef short gt_0
     cdef short gt_1
@@ -39,8 +41,9 @@ def ralt(genotypes, mindepth=1):
 
 #                cerr('Disreparancy: %f' % dis)
         read_view[i] = gt_0 if gt_0 < gt_1 else gt_1
+        depth_view[i] = gt_tot
 
-    return data, read
+    return data, read, depth
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
