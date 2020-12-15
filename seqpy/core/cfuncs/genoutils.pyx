@@ -1,3 +1,4 @@
+#cython: language_level=3
 
 from seqpy import cerr, cexit
 import numpy as np
@@ -62,6 +63,7 @@ def ralt_to_nalt(r_alt, n_mdp, threshold=-1, minmdp=3):
     cdef int i
     nalt = np.empty(shape = r_alt.shape, dtype=np.int8)
     cdef int8_t[:,:] nalt_v = nalt
+    cdef short min_mdp = minmdp
 
 
     if i_threshold < 0:
@@ -75,7 +77,7 @@ def ralt_to_nalt(r_alt, n_mdp, threshold=-1, minmdp=3):
                 else:
                     nalt_v[n,i] = 0
 
-    elif minmdp <= 0:
+    elif min_mdp <= 0:
         for n in range(N):
             for i in range(L):
                 r = ralt_v[n,i]
@@ -95,7 +97,7 @@ def ralt_to_nalt(r_alt, n_mdp, threshold=-1, minmdp=3):
                 d = nmdp_v[n,i]
                 if r < 0:
                     nalt_v[n,i] = -1
-                elif i_threshold < r < (1.0 - i_threshold) and d > minmdp:
+                elif i_threshold < r < (1.0 - i_threshold) and d > min_mdp:
                     nalt_v[n,i] = 1
                 elif r < 0.5:
                     nalt_v[n,i] = 0
