@@ -116,6 +116,8 @@ def condensed(multiseq):
     for x in range( multiseq.max_seqlen() ):
         c = multiseq[0][x]
         for s in multiseq[1:]:
+            if s[x] == 78 or s[x] == 110:
+                continue
             if s[x] != c:
                 break
         else:
@@ -167,7 +169,10 @@ def calculate_distance( mseq, func=None ):
     return M
 
 def search_restriction_site(seq, pattern, max_unmatches=0):
+    """ return [ (pos, score), ... ] """
 
+    if type(pattern) not in [ bytes, bytearray]:
+        raise RuntimeError( "ERR: pattern should be in bytes or bytearray")
     j_range = range(len(pattern))
     pos = []
     for i in range(len(seq)-len(pattern)):
