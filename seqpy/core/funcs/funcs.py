@@ -171,7 +171,7 @@ def search_na_site(seq, pattern, max_unmatches=0):
 
     j_range = range(len(pattern))
     pos = []
-    for i in range(len(seq)-len(pattern)):
+    for i in range(len(seq)-len(pattern)+1):
         matches = 0
         for j in j_range:
             if seq[i+j] == pattern[j]:
