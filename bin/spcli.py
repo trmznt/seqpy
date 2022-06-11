@@ -3,7 +3,7 @@
 __copyright__ = '''
 spcli - part of seqpy
 
-(c) 2011-2012 Hidayat Trimarsanto <anto@eijkman.go.id> / <trimarsanto@gmail.com>
+(c) 2011-2022 Hidayat Trimarsanto <trimarsanto@gmail.com>
 
 All right reserved.
 This software is licensed under GPL v3 or later version.
@@ -11,25 +11,30 @@ Please read the README.txt of this software.
 '''
 
 ##
-## spcli.py - seqpy command line interface
+# spcli.py - seqpy command line interface
 ##
 
-import sys, os, argparse
+import sys
+import os
+import argparse
 
 # prepare path to seqpy
-sys.path.append( os.path.split( os.path.split(__file__)[0] )[0] )
+sys.path.append(os.path.split(os.path.split(__file__)[0])[0])
 
 import seqpy
+
 
 def greet():
     seqpy.cerr('spcli - seqpy command line interface')
     seqpy.cerr('(C) 2011-2012 Hidayat Trimarsanto <trimarsanto@gmail.com>')
+
 
 def usage():
     seqpy.cerr('  usage:')
     seqpy.cerr('    spcli scriptfile/CMD [ARGS]')
     seqpy.cerr('  try: spcli showcmds')
     sys.exit(0)
+
 
 def main():
 
@@ -41,12 +46,12 @@ def main():
         # will execute a script file
         seqpy.cerr('Attempting to run script: %s' % sys.argv[1])
         with open(sys.argv[1]) as fh:
-            code = compile( fh.read(), sys.argv[1], 'exec' )
+            code = compile(fh.read(), sys.argv[1], 'exec')
             sys.argv = sys.argv[1:]
-            _l = {'__name__': 'notmain'}
-            module = exec( code, None, _l )
+            _l = {'__name__': '__spcli_main__'}
+            exec(code, None, _l)
             if 'main' in _l:
-                globals().update( _l )
+                globals().update(_l)
                 main = _l['main']
                 if 'init_argparser' in _l:
                     init_argparser = _l['init_argparser']
@@ -65,7 +70,7 @@ def main():
                 else:
                     import inspect
                     if 'args' in inspect.signature(main).parameters:
-                        main( args=sys.argv )
+                        main(args=sys.argv)
                     else:
                         main()
 
@@ -76,12 +81,10 @@ def main():
 
     else:
         from seqpy import cmds
-        cmds.execute( sys.argv[1:] )
-
+        cmds.execute(sys.argv[1:])
 
 
 if __name__ == '__main__':
     main()
 
-
-
+# EOF
