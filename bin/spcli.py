@@ -43,7 +43,7 @@ def main():
         with open(sys.argv[1]) as fh:
             code = compile( fh.read(), sys.argv[1], 'exec' )
             sys.argv = sys.argv[1:]
-            _l = {}
+            _l = {'__name__': 'notmain'}
             module = exec( code, None, _l )
             if 'main' in _l:
                 globals().update( _l )
@@ -52,10 +52,16 @@ def main():
                     init_argparser = _l['init_argparser']
                     p = init_argparser()
                     if not isinstance(p, argparse.ArgumentParser):
-                        seqpy.cerr('init_argparser() did not return ArgumentParser instance')
+                        seqpy.cerr('ERR: init_argparser() did not return ArgumentParser instance')
                         sys.exit(1)
                     argp = p.parse_args(sys.argv[1:])
-                    main(argp)
+                    if argp.debug:
+                        from ipdb import launch_ipdb_on_exception
+                        with launch_ipdb_on_exception():
+                            seqpy.cerr('WARN: running in debug mode')
+                            main(argp)
+                    else:
+                        main(argp)
                 else:
                     import inspect
                     if 'args' in inspect.signature(main).parameters:
