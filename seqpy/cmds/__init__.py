@@ -24,8 +24,14 @@ def execute(args):
     if not parser:
         seqpy.cexit('Fatal ERR: init_argparser() does not return properly')
 
-    args = parser.parse_args( args[1:] )
-    M.main( args )
+    args = parser.parse_args(args[1:])
+    if args.debug:
+        from ipdb import launch_ipdb_on_exception
+        with launch_ipdb_on_exception():
+            seqpy.cerr('WARN: running in debug mode')
+            M.main(args)
+    else:
+        M.main(args)
 
 
 def arg_parser( description = None ):
@@ -34,5 +40,8 @@ def arg_parser( description = None ):
 
     parser.add_argument('--noattr', action='append_const', dest='io_opts', const = 'noattr',
             help = 'do not read or write sequence attribute within fasta format')
-
+    parser.add_argument('--debug', default=False, action='store_true',
+                        help='open ipython3 pdb console when exception occurs')
     return parser
+
+# EOF
