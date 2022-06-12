@@ -17,6 +17,7 @@ Please read the README.txt of this software.
 import sys
 import os
 import argparse
+import platform
 
 # prepare path to seqpy
 sys.path.append(os.path.split(os.path.split(__file__)[0])[0])
@@ -27,6 +28,7 @@ import seqpy
 def greet():
     seqpy.cerr('spcli - seqpy command line interface')
     seqpy.cerr('(C) 2011-2012 Hidayat Trimarsanto <trimarsanto@gmail.com>')
+    seqpy.cerr(f'Host: {platform.uname().node}')
 
 
 def usage():
