@@ -34,6 +34,11 @@ def load_dataset(inpath):
     """ load zarr dataset and reset the encoding in all variables
         so that dataset can be saved using save_dataset
     """
+
+    # in case the inpath is still VCF, just use read_vcf
+    if inpath.lower().endswith('.vcf') or inpath.lower().endswith('.vcf.gz'):
+        return read_vcf(inpath)
+
     cerr(f'INFO: loading dataset from {inpath}')
     store = _get_zarr_storage(inpath, 'r')
     ds = sgkit.load_dataset(store)
@@ -52,6 +57,7 @@ def save_dataset(datastore, outpath):
 
 
 def read_vcf(path, fields=['INFO/*', 'FORMAT/*']):
+    cerr(f'INFO: reading VCF from {path}')
     memstore = zarr.storage.MemoryStore()
     sgkit.io.vcf.vcf_to_zarr(path, memstore, fields=fields)
     ds = sgkit.load_dataset(memstore)
