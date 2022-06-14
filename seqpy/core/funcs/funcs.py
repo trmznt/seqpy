@@ -118,7 +118,7 @@ def condensed(multiseq):
         for s in multiseq[1:]:
             if s[x] == 78 or s[x] == 110:
                 continue
-            if s[x] != c:
+            if s[x] != c and abs(s[x] - c) != 32:
                 break
         else:
             continue
