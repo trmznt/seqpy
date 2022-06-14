@@ -124,7 +124,7 @@ def condensed(multiseq):
             continue
         for y in range(len(multiseq)):
             cseqs[y].append( multiseq[y][x] )
-        positions.append( x )
+        positions.append( x+1 )
     cseqs.add_control('position', biosequence('position', b','.join( ('%d' % x).encode('ASCII') for x in positions)))
     return cseqs
 
