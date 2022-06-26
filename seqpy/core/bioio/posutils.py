@@ -22,8 +22,8 @@ import numpy as np
 
 
 def init_argparse(p):
-    p.add_argument('--posfile')
-    p.add_argument('--posfilefmt')
+    p.add_argument('--posfile', default='')
+    p.add_argument('--posfilefmt', default='')
 
     return p
 
@@ -36,6 +36,8 @@ def read_file(path):
         lines.append(header)
         for line in fin:
             line = line.strip()
+            if not line:
+                continue
             if line.startswith('#'):
                 continue
             lines.append(line)
@@ -54,12 +56,18 @@ def is_bedlike_format(filename, header):
     return False
 
 
-def read_posfile(infile, args=None, use_pyranges=False):
+def read_posfile(infile=None, args=None, use_pyranges=False):
     """ read position file or bed-like file, and return plain pandas DataFrame
         or pyranges
 
         if infile contains '.bed', then treat as 2-coordinate bed file
     """
+
+    if infile is None:
+        if args:
+            infile = args.posfile
+        else:
+            raise ValueError('read_posfile() need either a filename or args')
 
     buffer, header = read_file(infile)
     has_header = 0 if header.startswith('CHROM') else None
@@ -155,7 +163,7 @@ class PositionAccessor:
         return indexes, targets
 
     def sel_dataset(self, dataset):
-        """ return a new dataset based on """
+        """ return a new dataset with variants based on positions """
 
         # convert position to (contig, positions)
         # currently only handles last position (END), ie. point position
@@ -166,5 +174,61 @@ class PositionAccessor:
         return dataset.set_index(
             variants=('variant_contig', 'variant_position')
             ).sel(variants=positions)
+
+    def sel_tabular(self, tabframe):
+        """ return a new tabular frame with variants based on positions """
+        raise NotImplementedError()
+
+    def to_bed(self, outpath):
+        """ write to bedlike-file format """
+
+        _df = self._def
+
+        # make sure we have CHROM BEGIN END for the first 3 columns
+
+        if not np.all(_df.columns[:3] == ['CHROM', 'BEGIN', 'END']):
+            # rearrange columns
+            for i, col in enumerate(['CHROM', 'BEGIN', 'END']):
+                _df.insert(i, col, _df.pop(col))
+
+        # remove unnecessary columns and create a copy to leave the original intact
+        for col in ['_LENGTH', 'POS']:
+            if col in _df.columns:
+                _df = _df.drop(columns=col)
+
+        # save to tab-delimited file
+        _df.to_csv(outpath, sep='\t', index=False)
+
+    def to_pos(self, outpath):
+        """ write to position file format """
+
+        _df = self._df
+
+        # sanity check to ensure we don't have range position
+        if np.any(_df['_LENGTH' > 1]):
+            raise ValueError('to_pos() can only be used when all position have 1 bp length')
+
+        # make sure we have CHROM POS for the first 2 columns
+        if not np.all(_df.columns[:2] == ['CHROM', 'POS']):
+            # rearange columns
+            for i, col in enumerate(['CHROM', 'POS']):
+                _df.insert(i, col, _df.pop(col))
+
+        # remove unnecessary columns
+        for col in ['_LENGTH', 'BEGIN', 'END']:
+            _df = _df.drop(columns=col)
+
+        # save to tab-delimited file
+        _df.to_csv(outpath, sep='\t', index=False)
+
+
+def posframe_from_dataset(dataset):
+    """ create a position dataframe from a zarr dataset """
+    raise NotImplementedError()
+
+
+def posframe_from_tabular(dataframe):
+    """ create a position dataframe from a tabular dataframe """
+    raise NotImplementedError
 
 # EOF
