@@ -1,6 +1,8 @@
 
 import numpy as np
 
+from tqdm import tqdm
+
 
 def _allele_for_barcode(datastore, variant_idx, allele_idxes, het_mask=None, failed_mask=None):
 
@@ -45,7 +47,7 @@ def get_alleles(func, dataset, hetratio=0.67, mindepth=5, useGT=False):
 
     variants = []
     ds = dataset
-    for var_idx in ds.variants:
+    for var_idx in tqdm(ds.variants):
 
         if useGT:
 
@@ -85,5 +87,13 @@ def get_alleles(func, dataset, hetratio=0.67, mindepth=5, useGT=False):
         variants.append(alleles)
 
     return variants
+
+
+def get_position_tuples(ds):
+    return zip(np.array(ds.contigs)[ds.variant_contig.values], ds.variant_position.values)
+
+
+def get_position_ids(ds):
+    return [f'{c}:{p}' for c, p in get_position_tuples(ds)]
 
 # EOF
