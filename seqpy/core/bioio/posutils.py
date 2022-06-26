@@ -21,7 +21,7 @@ import numpy as np
 #
 
 
-def init_argparse(p):
+def init_argparser(p):
     p.add_argument('--posfile', default='')
     p.add_argument('--posfilefmt', default='')
 
