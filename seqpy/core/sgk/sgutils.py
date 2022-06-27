@@ -42,8 +42,20 @@ def _allele_for_hmmibd(datastore, variant_idx, allele_idxes, het_mask=None, fail
     return alleles
 
 
-def get_alleles(func, dataset, hetratio=0.67, mindepth=5, useGT=False):
-    """ return a list of alleles per variant """
+def get_alleles(func, dataset, hetratio=0.67, mindepth=5, minaltdepth=2, useGT=False):
+    """ return a list of alleles per variant
+
+        hetratio is the cut-off ratio to call heterozygote, valid values are [0.5, 1.0],
+        (major_depths/total_depths) < hetratio will be called hets, values < 0.5 would not make sense
+
+        mindepth is the cut-off value for call missing data, depth < mindepth will be mark as missing
+
+        minaltdepth is the threshold to call hets, minor_depths >= minaltdepth will be called hets
+
+        hetratio = 0.999 and minaltdepth=2 will indicate that any variants with minor_depth >= 2 will
+        be called hets, regardless of the hetratio
+
+    """
 
     variants = []
     ds = dataset
@@ -81,6 +93,10 @@ def get_alleles(func, dataset, hetratio=0.67, mindepth=5, useGT=False):
 
             # use hetratio as cutoff for calling hets
             het_mask = ratios < hetratio
+
+            # filter again with minaltdepth
+            if minaltdepth > 0:
+                het_mask = het_mask & ((total_depths - highest_depths) >= minaltdepth)
 
         alleles = func(ds, var_idx, allele_idx, het_mask, failed_mask)
 
