@@ -222,9 +222,44 @@ class PositionAccessor:
         _df.to_csv(outpath, sep='\t', index=False)
 
 
-def posframe_from_dataset(dataset):
+def posframe_from_dataset(dataset, positions=None):
     """ create a position dataframe from a zarr dataset """
-    raise NotImplementedError()
+
+    # check type of positions
+    match positions:
+        case None:
+            pass
+        case list(tuple):
+            # if a list of tuple
+            dataset = dataset.set_index(
+                variants=('variant_contig', 'variant_position')
+            ).sel(variants=positions)
+        case list(str):
+            # if a list of string (possibly CHROM:POS)
+            positions = [p.split(':') for p in positions]
+            positions = [(c, int(p)) for c, p in positions]
+            # if a list of tuple
+            dataset = dataset.set_index(
+                variants=('variant_contig', 'variant_position')
+            ).sel(variants=positions)
+        case _:
+            raise ValueError(f'Type {type(positions)} is not recognized for positions')
+
+    columns = [
+        ('CHROM', np.array(dataset.contigs)[dataset.variant_contig.values]),
+        ('POS', dataset.variant_position.values),
+        ('REF', dataset.variant_allele[:, 0]),
+        ('ALT', dataset.variant_allele[:, 1]),
+    ]
+
+    if hasattr(dataset, 'variant_SNPEFF_GENE_NAME'):
+        columns.append(('GENE', dataset.variant_SNPEFF_GENE_NAME.values))
+    if hasattr(dataset, 'variant_SNPEFF_AMINO_ACID_CHANGE'):
+        columns.append(('AACHANGE', dataset.variant_SNPEFF_AMINO_ACID_CHANGE))
+    if hasattr(dataset, 'variant_SNPEFF_CODON_CHANGE'):
+        columns.append(('CODON', dataset.variant_SNPEFF_CODON_CHANGE))
+
+    return pd.DataFrame(dict(columns))
 
 
 def posframe_from_tabular(dataframe):
