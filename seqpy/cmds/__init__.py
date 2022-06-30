@@ -40,8 +40,7 @@ def arg_parser( description = None ):
 
     parser.add_argument('--noattr', action='append_const', dest='io_opts', const = 'noattr',
             help = 'do not read or write sequence attribute within fasta format')
-    parser.add_argument('--debug', default=False, action='store_true',
-                        help='open ipython3 pdb console when exception occurs')
+
     return parser
 
 # EOF

@@ -61,7 +61,8 @@ def main():
                     if not isinstance(p, argparse.ArgumentParser):
                         seqpy.cerr('ERR: init_argparser() did not return ArgumentParser instance')
                         sys.exit(1)
-                    p.add_argument('--debug', default=False, action='store_true')
+                    p.add_argument('--debug', default=False, action='store_true',
+                                   help='open ipython3 pdb console when exception occurs')
                     argp = p.parse_args(sys.argv[1:])
                     if argp.debug:
                         from ipdb import launch_ipdb_on_exception
