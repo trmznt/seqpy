@@ -205,7 +205,7 @@ class PositionAccessor:
         _df = self._df
 
         # sanity check to ensure we don't have range position
-        if np.any(_df['_LENGTH' > 1]):
+        if np.any(_df['_LENGTH'] > 1):
             raise ValueError('to_pos() can only be used when all position have 1 bp length')
 
         # make sure we have CHROM POS for the first 2 columns
