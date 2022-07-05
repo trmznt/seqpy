@@ -238,7 +238,7 @@ def posframe_from_dataset(dataset, positions=None):
         case list(tuple):
             # if a list of tuple
             # we need to translate chrom notation to numeric contig
-            positions = tuple(zip(*positions))
+            positions = list(zip(*positions))
             variant_contigs = [dataset.contigs.index(x) for x in positions[0]]
             positions = list(zip(variant_contigs, positions[1]))
             dataset = dataset.set_index(
@@ -259,6 +259,7 @@ def posframe_from_dataset(dataset, positions=None):
         ('POS', dataset.variant_position.values),
         ('REF', dataset.variant_allele[:, 0]),
         ('ALT', dataset.variant_allele[:, 1]),
+        ('_LENGTH', 1),
     ]
 
     if hasattr(dataset, 'variant_SNPEFF_GENE_NAME'):
