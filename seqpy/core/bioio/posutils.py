@@ -115,11 +115,15 @@ class PositionAccessor:
         # check if at least have 2-column
         pass
 
-    def point_tuples(self):
+    def point_tuples(self, as_list=False):
         # return a list of point position tuples [ (chrom, position), ...]
         if 'POS' in self._df.columns:
+            if as_list:
+                return (self._df['CHROM'], self._df['POS'])
             return zip(self._df['CHROM'], self._df['POS'])
         df_points = self._df[self._df['_LENGTH'] == 1]
+        if as_list:
+            return (df_points['CHROM'], df_points['END'])
         return zip(df_points['CHROM'], df_points['END'])
 
     def range_tuples(self):
