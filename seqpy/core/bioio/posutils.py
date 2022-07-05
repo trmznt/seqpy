@@ -216,6 +216,8 @@ class PositionAccessor:
 
         # remove unnecessary columns
         for col in ['_LENGTH', 'BEGIN', 'END']:
+            if col not in _df.columns:
+                continue
             _df = _df.drop(columns=col)
 
         # save to tab-delimited file
