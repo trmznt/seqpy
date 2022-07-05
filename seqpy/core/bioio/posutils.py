@@ -237,14 +237,17 @@ def posframe_from_dataset(dataset, positions=None):
             pass
         case list(tuple):
             # if a list of tuple
+            # we need to translate chrom notation to numeric contig
+            positions = tuple(zip(*positions))
+            variant_contigs = [dataset.contigs.index(x) for x in positions[0]]
+            positions = list(zip(variant_contigs, positions[1]))
             dataset = dataset.set_index(
                 variants=('variant_contig', 'variant_position')
             ).sel(variants=positions)
         case list(str):
             # if a list of string (possibly CHROM:POS)
             positions = [p.split(':') for p in positions]
-            positions = [(c, int(p)) for c, p in positions]
-            # if a list of tuple
+            positions = [(dataset.contigs.index(c), int(p)) for c, p in positions]
             dataset = dataset.set_index(
                 variants=('variant_contig', 'variant_position')
             ).sel(variants=positions)
