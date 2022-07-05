@@ -23,6 +23,8 @@ def execute(args):
     parser = M.init_argparser()
     if not parser:
         seqpy.cexit('Fatal ERR: init_argparser() does not return properly')
+    parser.add_argument('--debug', default=False, action='store_true',
+                        help='open ipython3 pdb console when exception occurs')
 
     args = parser.parse_args(args[1:])
     if args.debug:
