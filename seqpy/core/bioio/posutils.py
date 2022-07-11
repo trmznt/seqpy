@@ -227,6 +227,22 @@ class PositionAccessor:
         # save to tab-delimited file
         _df.to_csv(outpath, sep='\t', index=False)
 
+    def combine(self, df):
+        """ merge between 2 position dataframe """
+
+        # concatenate, but check for sanity first
+        if ('POS' in self._df.columns) ^ ('POS' in df.columns):
+            raise ValueError('Both must either have POS or not have POS column')
+
+        _newdf = pd.concat([self._df, df])
+
+        # if has POS column, just drop duplicate straight away
+        if 'POS' in _newdf.columns:
+            return _newdf.drop_duplicates(subset=['CHROM', 'POS']).sort_values(by=['CHROM', 'POS'])
+
+        # for range-based position, need to calculate overlap
+        raise NotImplementedError('The function has not been implemented yet')
+
 
 def posframe_from_dataset(dataset, positions=None):
     """ create a position dataframe from a zarr dataset """
