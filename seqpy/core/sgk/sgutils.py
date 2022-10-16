@@ -6,7 +6,8 @@ from tqdm import tqdm
 
 def _allele_for_barcode(datastore, variant_idx, allele_idxes, het_mask=None, failed_mask=None):
 
-    alleles = datastore.variant_allele.sel(variants=variant_idx).values[allele_idxes]
+    #alleles = datastore.variant_allele.sel(variants=variant_idx).values[allele_idxes]
+    alleles = datastore.variant_allele[variant_idx].values[allele_idxes]
     if het_mask is not None:
         alleles[het_mask] = 'N'
     if failed_mask is not None:
@@ -59,7 +60,7 @@ def get_alleles(func, dataset, hetratio=0.67, mindepth=5, minaltdepth=2, useGT=F
 
     variants = []
     ds = dataset
-    for var_idx in tqdm(ds.variants):
+    for var_idx in tqdm(range(len(ds.variants))):
 
         if useGT:
 
@@ -88,7 +89,7 @@ def get_alleles(func, dataset, hetratio=0.67, mindepth=5, minaltdepth=2, useGT=F
             # set heterozygosity based on depth ratio
             highest_depths = np.take_along_axis(
                 allele_depths, np.expand_dims(allele_idx, axis=1), axis=1
-                ).squeeze(axis=1)
+            ).squeeze(axis=1)
             ratios = highest_depths / total_depths
 
             # use hetratio as cutoff for calling hets
