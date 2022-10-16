@@ -84,7 +84,7 @@ def read_posfile(infile=None, args=None, use_pyranges=False):
     else:
         if has_header is None:
             # add proper header to column 1 and 2 as CHROM, POS
-            df.rename(columns={0: 'CHROM', 1: 'POS'})
+            df.rename(columns={0: 'CHROM', 1: 'POS'}, inplace=True)
         # add _LENGTH column
         df['_LENGTH'] = 1
         df['START'] = df['POS'] - 1
