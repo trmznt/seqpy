@@ -25,6 +25,9 @@ def vcf2zarr(args):
         vcf_to_zarr(args.infiles, args.outfile, tempdir=args.outfile + '-temp',
                     max_alt_alleles=args.max_alt_alleles)
 
+    elif not args.outfile.endswith('.zip'):
+        vcf_to_zarr(args.infiles[0], max_alt_alleles=args.max_alt_alleles)
+
     else:
         cerr(f'[Reading VCF {args.infiles[0]}]')
         ds = read_vcf(args.infiles[0], max_alt_alleles=args.max_alt_alleles)
