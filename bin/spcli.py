@@ -100,6 +100,8 @@ def main():
 
 def autocomplete():
 
+    from seqpy.cmds import list_commands
+
     # prepare line
     line = os.environ.get('COMP_LINE', '')
     tokens = line.split()
@@ -110,12 +112,7 @@ def autocomplete():
         sys.exit(1)
 
     # prepare the completion lists
-    # read seqpy.cmds directory
-    import seqpy.cmds
-    cmds_directory = pathlib.Path(seqpy.cmds.__file__).parent
-    cmds = set(
-        [p.name.removesuffix('.py') for p in cmds_directory.iterdir()]
-    ) - {'__init__', '__pycache__'}
+    cmds = list_commands()
 
     if len(tokens) == 1:
         completions = sorted(cmds)

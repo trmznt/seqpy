@@ -11,6 +11,7 @@ Please read the README.txt of this software.
 import argparse
 import importlib
 import seqpy
+import pathlib
 
 
 def execute(args):
@@ -21,8 +22,12 @@ def execute(args):
     parser = M.init_argparser()
     if not parser:
         seqpy.cexit('Fatal ERR: init_argparser() does not return properly')
-    parser.add_argument('--debug', default=False, action='store_true',
-                        help='open ipython3 pdb console when exception occurs')
+
+    try:
+        parser.add_argument('--debug', default=False, action='store_true',
+                            help='open ipython3 pdb console when exception occurs')
+    except argparse.ArgumentError:
+        pass
 
     args = parser.parse_args(args[1:])
     if args.debug:
@@ -42,5 +47,15 @@ def arg_parser(description=None):
                         help='do not read or write sequence attribute within fasta format')
 
     return parser
+
+
+def list_commands():
+    # read sqpy.cmds directory
+    import seqpy.cmds
+    cmds_directory = pathlib.Path(seqpy.cmds.__file__).parent
+    cmds = set(
+        [p.name.removesuffix('.py') for p in cmds_directory.iterdir()]
+    ) - {'__init__', '__pycache__'}
+    return sorted(cmds)
 
 # EOF

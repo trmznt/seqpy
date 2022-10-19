@@ -1,8 +1,7 @@
 
 from seqpy import cout, cerr
-from seqpy.cmds import arg_parser
+from seqpy.cmds import arg_parser, list_commands
 
-import os
 
 def init_argparser():
 
@@ -10,17 +9,10 @@ def init_argparser():
     return p
 
 
-def main( args ):
+def main(args):
 
-    cerr("cmds directory: %s" % os.path.dirname(__file__))
-    cmds = []
-    for filename in os.listdir( os.path.dirname( __file__ ) ):
-        if filename.endswith('.py') and filename != '__init__.py':
-            cmds.append( filename[:-3] )
-
-    cmds.sort()
     cerr("available commands:")
-    for cmd in cmds:
+    for cmd in list_commands():
         cerr('  %s' % cmd)
 
-
+# EOF
