@@ -42,7 +42,11 @@ def usage():
 def main():
 
     if '_ARGCOMPLETE' in os.environ:
-        autocomplete()
+        line = os.environ.get('COMP_LINE', '')
+        tokens = line.split()
+        if len(tokens) == 1 or (len(tokens) == 2 and not line.endswith(' ')):
+            autocomplete(tokens)
+        sys.exit(1)
 
     greet()
     if len(sys.argv) == 1:
@@ -98,16 +102,15 @@ def main():
         cmds.execute(sys.argv[1:])
 
 
-def autocomplete():
+def autocomplete(tokens):
 
     from seqpy.cmds import list_commands
 
     # prepare line
-    line = os.environ.get('COMP_LINE', '')
-    tokens = line.split()
+
     last_token = tokens[-1]
 
-    if len(tokens) > 1 and (last_token.startswith(',') or last_token.startswith('~')):
+    if len(tokens) > 1 and (last_token.startswith('.') or last_token.startswith('~')):
         # let bash complete  use directory listing
         sys.exit(1)
 
