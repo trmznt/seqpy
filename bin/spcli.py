@@ -18,7 +18,7 @@ import sys
 import os
 import argparse
 import platform
-import pathlib
+import argcomplete
 
 # prepare path to seqpy
 sys.path.append(os.path.split(os.path.split(__file__)[0])[0])
@@ -41,23 +41,26 @@ def usage():
 
 def main():
 
+    tokens = []
     if '_ARGCOMPLETE' in os.environ:
         line = os.environ.get('COMP_LINE', '')
         tokens = line.split()
         if len(tokens) == 1 or (len(tokens) == 2 and not line.endswith(' ')):
             autocomplete(tokens)
-        sys.exit(1)
+        os.environ['COMP_LINE'] = line.split(' ', 1)[1]
+        os.environ['COMP_POINT'] = str(len(os.environ['COMP_LINE']))
+        cmd = tokens[1]
+    else:
+        greet()
+        if len(sys.argv) == 1:
+            usage()
+        cmd = sys.argv[1]
 
-    greet()
-    if len(sys.argv) == 1:
-        usage()
-
-    if sys.argv[1].endswith('.py'):
+    if cmd.endswith('.py'):
         # will execute a script file
         seqpy.cerr('Attempting to run script: %s' % sys.argv[1])
-        with open(sys.argv[1]) as fh:
-            code = compile(fh.read(), sys.argv[1], 'exec')
-            sys.argv = sys.argv[1:]
+        with open(cmd) as fh:
+            code = compile(fh.read(), cmd, 'exec')
             _l = {'__name__': '__spcli_main__'}
             exec(code, None, _l)
             if 'main' in _l:
@@ -77,7 +80,8 @@ def main():
                     except argparse.ArgumentError:
                         pass
 
-                    argp = p.parse_args(sys.argv[1:])
+                    argcomplete.autocomplete(p)
+                    argp = p.parse_args(sys.argv[2:])
                     if argp.debug:
                         from ipdb import launch_ipdb_on_exception
                         with launch_ipdb_on_exception():
@@ -92,14 +96,14 @@ def main():
                     else:
                         main()
 
-    elif sys.argv[1] == '-i':
+    elif cmd == '-i':
         # interactive
         import IPython
         IPython.embed()
 
     else:
         from seqpy import cmds
-        cmds.execute(sys.argv[1:])
+        cmds.execute(tokens[1:] if any(tokens) else sys.argv[1:])
 
 
 def autocomplete(tokens):

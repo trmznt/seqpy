@@ -9,6 +9,7 @@ Please read the README.txt of this software.
 '''
 
 import argparse
+import argcomplete
 import importlib
 import seqpy
 import pathlib
@@ -29,6 +30,7 @@ def execute(args):
     except argparse.ArgumentError:
         pass
 
+    argcomplete.autocomplete(parser)
     args = parser.parse_args(args[1:])
     if args.debug:
         from ipdb import launch_ipdb_on_exception
