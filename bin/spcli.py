@@ -19,6 +19,7 @@ import os
 import argparse
 import platform
 import argcomplete
+import pathlib
 
 # prepare path to seqpy
 sys.path.append(os.path.split(os.path.split(__file__)[0])[0])
@@ -58,7 +59,9 @@ def main():
 
     if cmd.endswith('.py'):
         # will execute a script file
-        seqpy.cerr('Attempting to run script: %s' % sys.argv[1])
+        seqpy.cerr(f'Attempting to run script: {cmd}')
+        if cmd.startswith('~'):
+            cmd = pathlib.Path(cmd).expanduser()
         with open(cmd) as fh:
             code = compile(fh.read(), cmd, 'exec')
             _l = {'__name__': '__spcli_main__'}
