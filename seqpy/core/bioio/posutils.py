@@ -104,7 +104,7 @@ def read_posfile(infile=None, args=None, use_pyranges=False):
 
 
 @pd.api.extensions.register_dataframe_accessor('pos')
-class PositionAccessor:
+class PositionAccessor(object):
 
     def __init__(self, df):
         self._validate(df)
@@ -242,6 +242,46 @@ class PositionAccessor:
 
         # for range-based position, need to calculate overlap
         raise NotImplementedError('The function has not been implemented yet')
+
+    def to_mhcode(self):
+        """ return a list of microhaplotype nomenclature code:
+            CHROM:1ST_SNP:2ND,3RD,4TH
+        """
+        if 'MHAPIDX' not in self._df.columns:
+            raise ValueError(
+                'This method requires column named MHAPIDX for the microhaplotype index'
+            )
+
+        curr_chrom = curr_nomenclature = None
+        curr_pos = curr_idx = -1
+        nomenclatures = []
+
+        for (idx, r) in self._df.iterrows():
+
+            chrom, pos, idx = r['CHROM'], r['POS'], r['MHAPIDX']
+
+            if curr_chrom is None:
+                curr_chrom = chrom
+                curr_pos = pos
+                curr_idx = idx
+                curr_nomenclature = f'{curr_chrom}:{curr_pos}:'
+                continue
+
+            if curr_idx != idx:
+                nomenclatures.append(curr_nomenclature[:-1])
+                curr_chrom = chrom
+                curr_pos = pos
+                curr_idx = idx
+                curr_nomenclature = f'{curr_chrom}:{curr_pos}:'
+                continue
+
+            curr_nomenclature = curr_nomenclature + f'{pos - curr_pos},'
+
+        nomenclatures.append(curr_nomenclature[:-1])
+
+        return pd.DataFrame({'MHCODE': nomenclatures})
+
+    # end of PositionAccessor()
 
 
 def posframe_from_dataset(dataset, positions=None):
