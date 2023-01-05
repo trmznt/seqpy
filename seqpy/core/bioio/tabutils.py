@@ -43,7 +43,7 @@ def write_file(outfile, dataframe):
     raise RuntimeError('Unknown extension type')
 
 
-def join_metafile(samples, metafile):
+def join_metafile(samples, metafile, percenttag=False):
     tokens = metafile.split(':')
     meta_df = read_file(tokens[0])
     if len(tokens) == 1:
@@ -54,7 +54,7 @@ def join_metafile(samples, metafile):
         if len(columns) == 1:
             columns = [columns[0]] + meta_df.columns
 
-    joined_df = meta_df.meta.join_to_samples(samples, columns)
+    joined_df = meta_df.meta.join_to_samples(samples, columns, percenttag)
 
     diff = None
     if len(joined_df) != len(samples):
@@ -71,15 +71,22 @@ class MetaAccessor(object):
     def __init__(self, df):
         self._df = df
 
-    def join_to_samples(self, samples, columns):
+    def join_to_samples(self, samples, columns, percenttag=False):
 
         # use pandas' join mechanism
         for c in columns:
             if c not in self._df:
                 raise ValueError(f'Column {c} does not exits')
         sample_df = pd.DataFrame(dict(SAMPLE=samples))
-        return sample_df.join(self._df.loc[:, columns].set_index(columns[0]),
-                              on='SAMPLE', how='inner')
+        joined_df = sample_df.join(self._df.loc[:, columns].set_index(columns[0]),
+                                   on='SAMPLE', how='inner')
+        if percenttag:
+            names = {}
+            for c in columns[1:]:
+                names[c] = f'%{c}'
+            joined_df.rename(columns=names, inplace=True)
+
+        return joined_df
 
     def join(self, right_df, on_column):
 
