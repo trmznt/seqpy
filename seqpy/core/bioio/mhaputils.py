@@ -7,11 +7,13 @@
 # eg: PvP01_01_v1:388122:41,75
 
 import pandas as pd
+from math import log, ceil
+from numpy import base_repr
 from seqpy import cerr
 from seqpy.core.bioio import tabutils
 
 
-def genotype_to_mhap(df, mhaplist):
+def genotype_to_mhap(df, mhaplist, encode=False):
     """ return a new pandas dataframe containing the microhaplotypes
         assembled from genotype dataframe, assuming that the dataframe
         contains single clonal sample or major genotype
@@ -64,5 +66,22 @@ def mhcode_to_columns(code):
         columns.append(f'{chrom}:{pos + p}')
 
     return columns
+
+
+# encoded haplotype uses base-5 integer
+
+_to_int = {'-': '0', 'A': '1', 'C': '2', 'G': '3', 'T': '4'}
+_to_na = {0: '-', 1: 'A', 2: 'C', 3: 'G', 4: 'T'}
+
+
+def encode_haplotype(haplotype):
+    alt_haplotype = ''.join(_to_int[a] for a in haplotype)
+    return int(alt_haplotype, 5)
+
+
+def decode_haplotype(numeric_hap, length):
+    alt_haplotype = base_repr(numeric_hap, 5, length - ceil(log(numeric_hap, 5)))
+    return ''.join(_to_na[a] for a in alt_haplotype)
+
 
 # EOF
