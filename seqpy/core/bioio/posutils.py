@@ -183,16 +183,16 @@ class PositionAccessor(object):
         """ return a new tabular frame with variants based on positions """
         raise NotImplementedError()
 
-    def to_bed(self, outpath):
+    def to_bed(self, outpath, minimal=False):
         """ write to bedlike-file format """
 
-        _df = self._def
+        _df = self._df
 
         # make sure we have CHROM BEGIN END for the first 3 columns
 
-        if not np.all(_df.columns[:3] == ['CHROM', 'BEGIN', 'END']):
+        if not np.all(_df.columns[:3] == ['CHROM', 'START', 'END']):
             # rearrange columns
-            for i, col in enumerate(['CHROM', 'BEGIN', 'END']):
+            for i, col in enumerate(['CHROM', 'START', 'END']):
                 _df.insert(i, col, _df.pop(col))
 
         # remove unnecessary columns and create a copy to leave the original intact
@@ -200,8 +200,14 @@ class PositionAccessor(object):
             if col in _df.columns:
                 _df = _df.drop(columns=col)
 
+        if minimal:
+            for col in _df.columns:
+                if col in ['CHROM', 'START', 'END']:
+                    continue
+                _df = _df.drop(columns=col)
+
         # save to tab-delimited file
-        _df.to_csv(outpath, sep='\t', index=False)
+        _df.to_csv(outpath, sep='\t', index=False, header=False if minimal else True)
 
     def to_pos(self, outpath):
         """ write to position file format """
