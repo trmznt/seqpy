@@ -5,6 +5,8 @@ import pathlib
 
 from enum import Enum
 
+from seqpy import cerr
+
 # tabular format for genomic data
 #
 # Sample-based Rows
@@ -39,6 +41,28 @@ def write_file(outfile, dataframe):
         case [*_, '.csv'] | [*_, '.csv', '.gz']:
             return dataframe.to_csv(outfile, sep=',', index=False)
     raise RuntimeError('Unknown extension type')
+
+
+def join_metafile(samples, metafile):
+    tokens = metafile.split(':')
+    meta_df = read_file(tokens[0])
+    if len(tokens) == 1:
+        # we use all columns, and set the 1st columns as key
+        columns = meta_df.columns
+    else:
+        columns = tokens[1].split(',')
+        if len(columns) == 1:
+            columns = [columns[0]] + meta_df.columns
+
+    joined_df = meta_df.meta.join_to_samples(samples, columns)
+
+    diff = None
+    if len(joined_df) != len(samples):
+        diff = set(samples) - set(joined_df['SAMPLE'])
+        cerr('The following samples do not have metadata:')
+        cerr(f'{diff}')
+
+    return joined_df, diff
 
 
 @pd.api.extensions.register_dataframe_accessor("meta")
@@ -152,7 +176,7 @@ class GenoAccessor(object):
 
 
 @pd.api.extensions.register_dataframe_accessor("mhap")
-class MicroHapAccessor(object):
+class MicroHaplotypeAccessor(object):
 
     def __init__(self, df):
         self._df = df
