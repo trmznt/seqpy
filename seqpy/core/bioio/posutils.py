@@ -78,8 +78,13 @@ def read_posfile(infile=None, args=None, use_pyranges=False):
         if has_header is None:
             # add proper header to column 1, 2 and 3 as CHROM, START and END
             df.rename(columns={0: 'CHROM', 1: 'START', 2: 'END'}, inplace=True)
+
         # add _LENGTH column
         df['_LENGTH'] = df['END'] - df['START']
+
+        # if all LENGTH is 1, create a POS column as well
+        if df['_LENGTH'].eq(1).all():
+            df['POS'] = df['END']
 
     else:
         if has_header is None:
@@ -99,6 +104,9 @@ def read_posfile(infile=None, args=None, use_pyranges=False):
             raise RuntimeError('Please install pyranges: pip3 install pyranges')
 
         return pr.PyRanges(df)
+
+    # by the end of the reading process, dataframe should have the following headers:
+    # CHROM, START, END, _LENGTH and optional POS (if all _LENGTH == 1)
 
     return df
 
@@ -177,7 +185,7 @@ class PositionAccessor(object):
 
         return dataset.set_index(
             variants=('variant_contig', 'variant_position')
-            ).sel(variants=positions)
+        ).sel(variants=positions)
 
     def sel_tabular(self, tabframe):
         """ return a new tabular frame with variants based on positions """
@@ -225,7 +233,7 @@ class PositionAccessor(object):
                 _df.insert(i, col, _df.pop(col))
 
         # remove unnecessary columns
-        for col in ['_LENGTH', 'BEGIN', 'END']:
+        for col in ['_LENGTH', 'START', 'END']:
             if col not in _df.columns:
                 continue
             _df = _df.drop(columns=col)
@@ -242,12 +250,55 @@ class PositionAccessor(object):
 
         _newdf = pd.concat([self._df, df])
 
-        # if has POS column, just drop duplicate straight away
+        # if has POS column, sort by CHROM & POS and just drop duplicate straight away
         if 'POS' in _newdf.columns:
             return _newdf.drop_duplicates(subset=['CHROM', 'POS']).sort_values(by=['CHROM', 'POS'])
 
-        # for range-based position, need to calculate overlap
+        # for range-based position, need to calculate overlap, possibly using pyranges
         raise NotImplementedError('The function has not been implemented yet')
+
+    def intersection(self, df):
+        """ create intersection between 2 position dataframe """
+
+        # sanity check
+        if ('POS' in self._df.columns) ^ ('POS' in df.columns):
+            raise ValueError('Both must either have POS or not have POS column')
+
+        if 'POS' in self._df.columns:
+            keys = ['CHROM', 'POS']
+            idx = pd.Index(self._df[keys]).intersection(df[keys])
+            new_df = self._df.set_index(keys)
+            return new_df[new_df.index.isin(idx)].reset_index().sort_values(by=keys)
+
+        raise NotImplementedError("This functionality has not been implemented")
+
+    def difference(self, df):
+        """ create difference between this dataframe and df """
+
+        # sanity check
+        if ('POS' in self._df.columns) ^ ('POS' in df.columns):
+            raise ValueError('Both must either have POS or not have POS column')
+
+        if 'POS' in self._df.columns:
+            keys = ['CHROM', 'POS']
+            idx = pd.Index(self._df[keys]).difference(df[keys])
+            new_df = self._df.set_index(keys)
+            return new_df[new_df.index.isin(idx)].reset_index().sort_values(by=keys)
+
+        raise NotImplementedError("This functionality has not been implemented")
+
+    def symdiff(self, df):
+        """ create symmetric difference between 2 position dataframe """
+
+        # sanity check
+        if ('POS' in self._df.columns) ^ ('POS' in df.columns):
+            raise ValueError('Both must either have POS or not have POS column')
+
+        if 'POS' in self._df.columns:
+            keys = ['CHROM', 'POS']
+            idx = pd.Index(self._df[keys]).symmetric_difference(df[keys])
+            new_df = self._df.set_index(keys)
+            return new_df[new_df.index.isin(idx)].reset_index().sort_values(by=keys)
 
     def to_mhcode(self):
         """ return a list of microhaplotype nomenclature code:
