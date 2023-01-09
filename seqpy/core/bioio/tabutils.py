@@ -51,6 +51,9 @@ def join_metafile(samples, metafile, percenttag=False):
         columns = meta_df.columns
     else:
         columns = tokens[1].split(',')
+
+        # if only 1 column name, assumed that it will be the indexing (ie sample code) column
+        # and the all of the other columns will be joined
         if len(columns) == 1:
             columns = [columns[0]] + meta_df.columns
 
@@ -73,16 +76,38 @@ class MetaAccessor(object):
 
     def join_to_samples(self, samples, columns, percenttag=False):
 
-        # use pandas' join mechanism
+        actual_columns = []
+        final_columns = []
+        rename_dict = {}
         for c in columns:
+
+            # if c contains '>', then the column will be renamed
+            c, *c_rename = c.split('=', 1)
+
+            # check if c exists
             if c not in self._df:
                 raise ValueError(f'Column {c} does not exits')
+
+            actual_columns.append(c)
+            if any(c_rename):
+                rename_dict[c] = c_rename[0]
+                final_columns.append(c_rename[0])
+            else:
+                final_columns.append(c)
+
+        # use pandas' join mechanism
         sample_df = pd.DataFrame(dict(SAMPLE=samples))
-        joined_df = sample_df.join(self._df.loc[:, columns].set_index(columns[0]),
+        joined_df = sample_df.join(self._df.loc[:, actual_columns].set_index(actual_columns[0]),
                                    on='SAMPLE', how='inner')
+
+        # rename columns if needed
+        if any(rename_dict):
+            joined_df.rename(columns=rename_dict, inplace=True)
+
+        # prepend percent signature if needed
         if percenttag:
             names = {}
-            for c in columns[1:]:
+            for c in final_columns[1:]:
                 names[c] = f'%{c}'
             joined_df.rename(columns=names, inplace=True)
 
