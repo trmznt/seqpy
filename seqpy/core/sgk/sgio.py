@@ -30,7 +30,7 @@ def vcf_to_zarr(vcffile, outpath, fields=['INFO/*', 'FORMAT/*'], max_alt_alleles
         store.close()
 
 
-def load_dataset(inpath, max_alt_alleles=3):
+def load_dataset(inpath, max_alt_alleles=8):
     """ load zarr dataset and reset the encoding in all variables
         so that dataset can be saved using save_dataset
     """
