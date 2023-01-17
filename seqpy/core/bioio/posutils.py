@@ -312,6 +312,7 @@ class PositionAccessor(object):
         curr_chrom = curr_nomenclature = None
         curr_pos = curr_idx = -1
         nomenclatures = []
+        ids = []
 
         for (idx, r) in self._df.iterrows():
 
@@ -326,6 +327,7 @@ class PositionAccessor(object):
 
             if curr_idx != idx:
                 nomenclatures.append(curr_nomenclature[:-1])
+                ids.append(curr_idx)
                 curr_chrom = chrom
                 curr_pos = pos
                 curr_idx = idx
@@ -335,8 +337,9 @@ class PositionAccessor(object):
             curr_nomenclature = curr_nomenclature + f'{pos - curr_pos},'
 
         nomenclatures.append(curr_nomenclature[:-1])
+        ids.append(curr_idx)
 
-        return pd.DataFrame({'MHCODE': nomenclatures})
+        return pd.DataFrame({'MHCODE': nomenclatures, 'ID': ids})
 
     # end of PositionAccessor()
 
