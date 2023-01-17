@@ -1,6 +1,7 @@
 # tabutils.py
 
 import pandas as pd
+import numpy as np
 import pathlib
 
 from enum import Enum
@@ -181,19 +182,37 @@ class GenoAccessor(object):
         pass
 
     def get_alleles(self):
+        """ return a dataframe with columns of [MARKER1, MARKER2, MARKER3, ...] """
         return self._alleledf
 
     def get_samples(self):
+        """ return series of sample codes """
         return self._sampledf['SAMPLE']
 
+    def get_sampledf(self):
+        """ return dataframe containings [SAMPLE, %META1, [...], %MARKER1, ...] """
+        return self._sampledf
+
+    def get_metarows(self):
+        return self._metarows
+
+    def get_metacolumns(self):
+        return self._metacolumns
+
+    def set_alleles(self, missings=None):
+        if missings:
+            for allele in missings:
+                self._alleledf.replace(allele, np.nan, inplace=True)
+        return self._df
+
     def _process_sample_format(self):
-        # create new dataframe without metadata row but still with metadata columns
+        # create ** new dataframe view ** without metadata row but still with metadata columns
         metarows = self._df['SAMPLE'].str.startswith('%')
         allelecolumns = self._df.columns.str.contains(':')
-        self._sampledf = self._df[~metarows]
-        self._metarows = self._df[metarows]
-        self._metacolumns = None
-        self._alleledf = self._sampledf.loc[:, allelecolumns]
+        self._sampledf = self._df.loc[~metarows]
+        self._metarows = self._df.loc[metarows]
+        self._metacolumns = self._df.loc[~metarows, ~allelecolumns]
+        self._alleledf = self._df.loc[~metarows, allelecolumns]
 
     def _process_variant_format(self):
         # create new dataframe without metadata columns
