@@ -14,9 +14,10 @@ from seqpy.core.bioio import tabutils
 
 
 def genotype_to_mhap(df, mhaplist, encode=False):
-    """ return a new pandas dataframe containing the microhaplotypes
+    """ Return a new pandas dataframe containing the microhaplotypes
         assembled from genotype dataframe, assuming that the dataframe
-        contains single clonal sample or major genotype
+        contains single clonal sample or major genotype.
+        Columns are [SAMPLE, CODE1, CODE2, ...]
     """
 
     sample_df = pd.DataFrame({'SAMPLE': df.geno.get_samples()})
@@ -41,12 +42,13 @@ def genotype_to_mhap(df, mhaplist, encode=False):
         missing_idx = alleles.str.contains('X')
         alleles[missing_idx] = 'X'
 
-        # mark microhaplotypes taht contain heterozygous allele as missing mhap
+        # mark microhaplotypes that contain heterozygous allele as missing mhap
         het_idx = alleles.str.contains('N')
         alleles[het_idx] = 'X'
-        cerr(f'[Warning: microhaplotypes found with heterozygous allele and '
-             f'marked as missing: {het_idx.sum()}]')
-        
+        if het_idx.sum():
+            cerr(f'[Warning: microhaplotypes found with heterozygous allele and '
+                 f'marked as missing: {het_idx.sum()}]')
+
         dfs.append(
             pd.DataFrame({mhcode: alleles})
         )
