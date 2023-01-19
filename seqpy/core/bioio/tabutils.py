@@ -44,7 +44,7 @@ def write_file(outfile, dataframe):
     raise RuntimeError('Unknown extension type')
 
 
-def join_metafile(samples, metafile, percenttag=False):
+def join_metafile(samples, metafile, data=None, start_col=0, percenttag=False):
     tokens = metafile.split(':')
     meta_df = read_file(tokens[0])
     if len(tokens) == 1:
@@ -65,6 +65,14 @@ def join_metafile(samples, metafile, percenttag=False):
         diff = set(samples) - set(joined_df['SAMPLE'])
         cerr('The following samples do not have metadata:')
         cerr(f'{diff}')
+
+    if data is not None:
+        # perform sanity check
+        if len(joined_df) != len(data):
+            raise ValueError('data df does not have same length as sample size')
+
+        # concatenate joined_df with data_df starting from column start_col
+        joined_df = pd.concat([joined_df, data.iloc[:, start_col:]], axis=1)
 
     return joined_df, diff
 
