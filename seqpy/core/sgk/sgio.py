@@ -21,23 +21,33 @@ def _get_zarr_storage(path, mode='r'):
             return path
 
 
-def vcf_to_zarr(vcffile, outpath, fields=['INFO/*', 'FORMAT/*'], max_alt_alleles=3):
+def vcf_to_zarr(vcffile,
+                outpath,
+                fields=['INFO/*', 'FORMAT/*'],
+                max_alt_alleles=3,
+                ploidy=2):
 
     cerr(f'INFO: converting from {vcffile} to {outpath}')
     store = _get_zarr_storage(outpath)
-    sgkit.io.vcf.vcf_to_zarr(vcffile, store, fields=fields, max_alt_alleles=max_alt_alleles)
+    sgkit.io.vcf.vcf_to_zarr(vcffile, store, fields=fields,
+                             max_alt_alleles=max_alt_alleles, ploidy=ploidy)
     if hasattr(store, 'close'):
         store.close()
 
 
-def load_dataset(inpath, max_alt_alleles=8):
+def load_dataset(inpath,
+                 max_alt_alleles=8,
+                 ploidy=2,
+                 fields=['INFO/*', 'FORMAT/*']):
     """ load zarr dataset and reset the encoding in all variables
         so that dataset can be saved using save_dataset
     """
 
     # in case the inpath is still VCF, just use read_vcf
     if inpath.lower().endswith('.vcf') or inpath.lower().endswith('.vcf.gz'):
-        return read_vcf(inpath, max_alt_alleles=max_alt_alleles)
+        return read_vcf(inpath, fields=fields,
+                        max_alt_alleles=max_alt_alleles,
+                        ploidy=ploidy)
 
     cerr(f'INFO: loading dataset from {inpath}')
     store = _get_zarr_storage(inpath, 'r')
@@ -56,10 +66,15 @@ def save_dataset(datastore, outpath):
         store.close()
 
 
-def read_vcf(path, fields=['INFO/*', 'FORMAT/*'], max_alt_alleles=3):
+def read_vcf(path,
+             fields=['INFO/*', 'FORMAT/*'],
+             max_alt_alleles=3,
+             ploidy=2):
     cerr(f'INFO: reading VCF from {path}')
     memstore = zarr.storage.MemoryStore()
-    sgkit.io.vcf.vcf_to_zarr(path, memstore, fields=fields, max_alt_alleles=max_alt_alleles)
+    sgkit.io.vcf.vcf_to_zarr(path, memstore, fields=fields,
+                             max_alt_alleles=max_alt_alleles,
+                             ploidy=ploidy)
     ds = sgkit.load_dataset(memstore)
     for v in ds.variables:
         ds[v].encoding.clear()
