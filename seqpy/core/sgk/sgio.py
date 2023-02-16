@@ -7,7 +7,6 @@ try:
     import zarr.storage
     import sgkit
     import sgkit.io.vcf
-    import sgkit.io.vcf.vcf_reader
 except ModuleNotFoundError:
     cerr('ERR: require properly installed sgkit with VCF capability')
 
@@ -30,9 +29,12 @@ def vcf_to_zarr(vcffile,
 
     cerr(f'INFO: converting from {vcffile} to {outpath}')
     store = _get_zarr_storage(outpath)
-    sgkit.io.vcf.vcf_reader.vcf_to_zarr_sequential(vcffile, store, fields=fields,
-                                                   max_alt_alleles=max_alt_alleles,
-                                                   ploidy=ploidy)
+    sgkit.io.vcf.vcf_to_zarr(vcffile, store, fields=fields,
+                             max_alt_alleles=max_alt_alleles,
+                             ploidy=ploidy,
+                             regions=None,
+                             target_part_size=None,
+                             )
     if hasattr(store, 'close'):
         store.close()
 
@@ -75,11 +77,13 @@ def read_vcf(path,
     cerr(f'INFO: reading VCF from {path}')
     memstore = zarr.storage.MemoryStore()
     # use sequential readers, because the vcf_to_zarr (the parallel version)
-    # has bugs in reading my VCF files (created by bcftools)
-    sgkit.io.vcf.vcf_reader.vcf_to_zarr_sequential(path, memstore, fields=fields,
-                                                   max_alt_alleles=max_alt_alleles,
-                                                   ploidy=ploidy,
-                                                   )
+    # has bugs in reading my (Anto's) VCF files (created by bcftools)
+    sgkit.io.vcf.vcf_to_zarr(path, memstore, fields=fields,
+                             max_alt_alleles=max_alt_alleles,
+                             ploidy=ploidy,
+                             regions=None,
+                             target_part_size=None,
+                             )
     ds = sgkit.load_dataset(memstore)
     for v in ds.variables:
         ds[v].encoding.clear()
