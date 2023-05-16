@@ -44,6 +44,19 @@ def write_file(outfile, dataframe):
     raise RuntimeError('Unknown extension type')
 
 
+def read_table(infile, func):
+    """ func is function that returns the line or None """
+    import io
+
+    lines = []
+    with open(infile) as f_in:
+        for line in f_in:
+            if (line := func(line)) is not None:
+                lines.append(line)
+    buf = '\n'.join(lines)
+    return pd.read_table(io.StringIO(buf))
+
+
 def join_metafile(samples, metafile, data=None, start_col=0, percenttag=False):
     tokens = metafile.split(':')
     meta_df = read_file(tokens[0])
