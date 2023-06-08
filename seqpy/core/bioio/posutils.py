@@ -3,6 +3,7 @@ import io
 
 import pandas as pd
 import numpy as np
+import gzip
 
 # This module is used to read files containing position in the genome.
 #
@@ -30,7 +31,8 @@ def init_argparser(p):
 
 def read_file(path):
     """ read file and discard lines starting with hash # """
-    with open(path) as fin:
+    func = gzip.open if path.endswith('.gz') else open
+    with func(path, 'rb') as fin:
         lines = []
         header = next(fin).strip()
         lines.append(header)
@@ -38,11 +40,11 @@ def read_file(path):
             line = line.strip()
             if not line:
                 continue
-            if line.startswith('#'):
+            if line.startswith(b'#'):
                 continue
             lines.append(line)
-    buf = '\n'.join(lines)
-    return io.StringIO(buf), header
+    buf = b'\n'.join(lines)
+    return io.BytesIO(buf), header.decode('UTF-8')
 
 
 def is_bedlike_format(filename, header):
@@ -56,7 +58,7 @@ def is_bedlike_format(filename, header):
     return False
 
 
-def read_posfile(infile=None, args=None, use_pyranges=False):
+def read_posfile(infile=None, args=None, sep=None, use_pyranges=False):
     """ read position file or bed-like file, and return plain pandas DataFrame
         or pyranges
 
@@ -71,7 +73,7 @@ def read_posfile(infile=None, args=None, use_pyranges=False):
 
     buffer, header = read_file(infile)
     has_header = 0 if header.startswith('CHROM') else None
-    df = pd.read_csv(buffer, sep=None, header=has_header, engine='python')
+    df = pd.read_csv(buffer, sep=sep, header=has_header, engine='python')
 
     if is_bedlike_format(infile, header):
         # treat as 3-coordinate BED file
