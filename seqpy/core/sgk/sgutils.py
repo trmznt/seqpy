@@ -58,9 +58,17 @@ def get_alleles(func, dataset, hetratio=0.67, mindepth=5, minaltdepth=2, useGT=F
 
     """
 
+    import cProfile as profile
+    import pstats
+
     variants = []
     ds = dataset
-    for var_idx in tqdm(range(len(ds.variants))):
+    N = len(ds.variants)
+
+    #prof = profile.Profile()
+    #prof.enable()
+
+    for var_idx in tqdm(range(N), miniters=int(N/100)):
 
         if useGT:
 
@@ -102,6 +110,14 @@ def get_alleles(func, dataset, hetratio=0.67, mindepth=5, minaltdepth=2, useGT=F
         alleles = func(ds, var_idx, allele_idx, het_mask, failed_mask)
 
         variants.append(alleles)
+
+    #prof.disable()
+
+    # print profiling output
+    #stats = pstats.Stats(prof).sort_stats("cumtime")
+    #stats.print_stats(30) # top 10 rows
+    #stats.print_callers(30)
+    #stats.print_callees(30)
 
     return variants
 
