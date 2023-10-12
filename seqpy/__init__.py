@@ -10,6 +10,7 @@ Please read the README.txt of this software.
 
 import sys
 import os
+import time
 
 # prepare seqpy/extlib path to sys.path
 sys.path.append(os.path.join(os.path.split(os.path.split(__file__)[0])[0], 'seqpy/extlib'))
@@ -31,8 +32,11 @@ def cout(text):
     _cout(text)
 
 
-def cerr(text):
-    _cerr(text)
+def cerr(text, stamp=True):
+    if stamp:
+        _cerr(time.strftime('%H:%M:%S ') + text)
+    else:
+        _cerr(text)
 
 
 def cexit(text, err=1):

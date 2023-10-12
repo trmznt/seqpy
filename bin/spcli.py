@@ -29,15 +29,15 @@ import seqpy
 
 
 def greet():
-    seqpy.cerr('spcli - seqpy command line interface')
-    seqpy.cerr('(C) 2011-2022 Hidayat Trimarsanto <trimarsanto@gmail.com>')
-    seqpy.cerr(f'Host: {platform.uname().node}')
+    seqpy.cerr('spcli - seqpy command line interface', stamp=False)
+    seqpy.cerr('(C) 2011-2022 Hidayat Trimarsanto <trimarsanto@gmail.com>', stamp=False)
+    seqpy.cerr(f'Host: {platform.uname().node}', stamp=False)
 
 
 def usage():
-    seqpy.cerr('  usage:')
-    seqpy.cerr('    spcli scriptfile/CMD [ARGS]')
-    seqpy.cerr('  try: spcli showcmds')
+    seqpy.cerr('  usage:', stamp=False)
+    seqpy.cerr('    spcli scriptfile/CMD [ARGS]', stamp=False)
+    seqpy.cerr('  try: spcli showcmds', stamp=False)
     sys.exit(0)
 
 
