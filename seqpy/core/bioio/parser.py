@@ -29,6 +29,11 @@ def e(text):
     return text.encode('UTF-8')
 
 
+def chunked(src, size):
+    for i in range(0, len(src), size):
+        yield src[i:i+size]
+
+
 def parse_definition_line(line):
     mo = re.match(r'^([^\[\]]+)(\[.*\])*([^\[\]]+)*$', line)
     seqlabel = mo.group(1)
@@ -138,9 +143,10 @@ def write_fasta( stream_file, mseqs, options={} ):
             defline = '>' + s.label + build_attrline(s.attr, s.definition) + '\n'
         else:
             defline = '>' + s.label + '\n'
-        ostream.write( defline.encode('UTF-8') )
-        ostream.write(s.seq)
-        ostream.write(b'\n')
+        ostream.write(defline.encode('UTF-8'))
+        for line in chunked(s.seq, 120):
+            ostream.write(line)
+            ostream.write(b'\n')
 
         if s._extdata:
             for (k,v) in s._extdata.items():
@@ -572,7 +578,7 @@ def guess_parser(filename):
         import seqdb
         return seqdb.open, seqdb.open
     ext = ext.upper()
-    if ext in [ 'FA', 'FAS', 'FASTA', 'FST', 'EFAS', 'EFST', 'EFASTA' ]:
+    if ext in ['FA', 'FAS', 'FASTA', 'FST', 'EFAS', 'EFST', 'EFASTA', 'FNA']:
         return read_fasta, write_fasta
     elif ext in [ 'PHY', 'PHYLIP' ]:
         return read_phylip, write_phylip
