@@ -120,7 +120,7 @@ class MetaAccessor(object):
         # use pandas' join mechanism
         sample_df = pd.DataFrame(dict(SAMPLE=samples))
         joined_df = sample_df.join(self._df.loc[:, actual_columns].set_index(actual_columns[0]),
-                                   on='SAMPLE', how='inner')
+                                   on='SAMPLE', how='left')
 
         # rename columns if needed
         if any(rename_dict):
@@ -139,7 +139,7 @@ class MetaAccessor(object):
 
         # use pandas' join mechanism
         # import IPython; IPython.embed()
-        return self._df.join(right_df.set_index(on_column), on=on_column, how='inner')
+        return self._df.join(right_df.set_index(on_column), on=on_column, how='left')
 
     def to_dict(self, key_column, value_column):
         return dict(zip(self._df[key_column], self._df[value_column]))
@@ -197,7 +197,14 @@ class GenoAccessor(object):
             return columns[sample_indexes]
 
     def get_positionlist(self):
-        pass
+        """ return a list of tuple (chrom, pos) """
+        positions = self.get_alleles()
+        positionlist = []
+        for position in positions:
+            chrom, pos = position.split(':', 1)
+            positionlist.append((chrom, int(pos)))
+        return positionlist
+
 
     def get_positionids(self):
         pass
@@ -263,16 +270,45 @@ class MicroHaplotypeAccessor(object):
 
 def dataframe_from_variants(dataset, variants):
 
-    from seqpy.core.sgk import sgutils
+    from seqpy.core.sgk import sgutils2 as sgutils
 
     position_ids = sgutils.get_position_ids(dataset)
-    headers = ['SAMPLE'] + list(position_ids)
 
-    columns = [dataset.sample_id] + variants
+    # import IPython; IPython.embed()
 
-    df = pd.DataFrame(dict(zip(headers, columns)))
+    cerr('[Creating new dataframe for alleles...]')
+    df = pd.DataFrame(
+        data=variants,
+        columns=position_ids
+    )
+    df.insert(0, 'SAMPLE', dataset.sample_id)
 
     return df
 
+
+def generate_spec_df(a_list, column_name):
+    """ this function generate a spec df (currently color only, symbol/marker for future) """
+
+    # 12 colours from ColorBrewer2
+    colour12 = ['#1f78b4', '#33a02c', '#e31a1c', '#ff7f00', '#6a3d9a', '#b15928',
+                '#a6cee3', '#b2df8a', '#fb9a99', '#fdbf6f', '#cab2d6', '#ffff99']
+
+    # 20 colours from Vega
+    colour20 = ["#1f77b4", "#aec7e8", "#ff7f0e", "#ffbb78", "#2ca02c", "#98df8a",
+                "#d62728", "#ff9896", "#9467bd", "#c5b0d5", "#8c564b", "#c49c94",
+                "#e377c2", "#f7b6d2", "#7f7f7f", "#c7c7c7", "#bcbd22", "#dbdb8d",
+                "#17becf", "#9edae5"]
+
+    # 20 colours from IWantHue
+    colour20 = ["#7ebbc7", "#6d38c0", "#72dc59", "#cc4dc4", "#cfd94a", "#6f68c9",
+                "#649a40", "#c2477b", "#68d5a9", "#cd3f41", "#637dac", "#dc6931",
+                "#4d285e", "#bf953c", "#cc9acd", "#536840", "#74372c", "#c9d19d",
+                "#363638", "#c69085"]
+
+    # if grouping <= 12, use colour12 otherwise use colour20
+    colour_set = colour12 if len(a_list) <= 12 else colour20
+    spec_df = pd.DataFrame({column_name: a_list, 'COLOUR': colour_set[:len(a_list)]})
+
+    return spec_df
 
 # EOF
