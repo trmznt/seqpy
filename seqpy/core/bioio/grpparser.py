@@ -16,8 +16,10 @@ def init_argparser(p=None):
     if p is None:
         p = arg_parser('Group file parser')
 
-    p.add_argument('--groupfile', default='')
-    p.add_argument('--metafile', default='')
+    p.add_argument('--groupfile', default='',
+                   help='group file in YAML (dict) format')
+    p.add_argument('--metafile', default='',
+                   help='tab-separated file containing meta data')
     p.add_argument('--colourfile', default='')
     p.add_argument('--column', default='1,2')
 
