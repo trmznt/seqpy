@@ -73,9 +73,13 @@ def save_dataset(datastore, outpath):
 def read_vcf(path,
              fields=['INFO/*', 'FORMAT/*'],
              max_alt_alleles=3,
-             ploidy=2):
+             ploidy=2,
+             outpath=None):
     cerr(f'INFO: reading VCF from {path}')
-    memstore = zarr.storage.MemoryStore()
+    if outpath is None:
+        memstore = zarr.storage.MemoryStore()
+    else:
+        memstore = zarr.storage.DirectoryStore(outpath)
     # use sequential readers, because the vcf_to_zarr (the parallel version)
     # has bugs in reading my (Anto's) VCF files (created by bcftools)
     sgkit.io.vcf.vcf_to_zarr(path, memstore, fields=fields,
