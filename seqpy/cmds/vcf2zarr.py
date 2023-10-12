@@ -11,7 +11,7 @@ def init_argparser():
     p.add_argument('--max_alt_alleles', type=int, default=3)
     p.add_argument('--fields', default='FORMAT/GT,FORMAT/AD',
                    help='Extra fields to be extracted from VCF file, eg: INFO/*, '
-                   'FORMAT/AD, FORMAT/GT, FORMAT/*, etc. Default to "FORMAT/AD"')
+                   'FORMAT/AD, FORMAT/GT, FORMAT/*, etc. [FORMAT/GT,FORMAT/AD]')
     p.add_argument('infiles', nargs='+')
     return p
 
@@ -33,11 +33,11 @@ def vcf2zarr(args):
                     fields=fields,
                     ploidy=args.ploidy)
 
-    elif not args.outfile.endswith('.zip'):
-        vcf_to_zarr(args.infiles[0], args.outfile,
-                    fields=fields,
-                    max_alt_alleles=args.max_alt_alleles,
-                    ploidy=args.ploidy)
+    #elif not args.outfile.endswith('.zip'):
+    #    vcf_to_zarr(args.infiles[0], args.outfile,
+    #                fields=fields,
+    #                max_alt_alleles=args.max_alt_alleles,
+    #                ploidy=args.ploidy)
 
     else:
         cerr(f'[Reading VCF {args.infiles[0]}]')
@@ -45,6 +45,7 @@ def vcf2zarr(args):
                       max_alt_alleles=args.max_alt_alleles,
                       fields=fields,
                       ploidy=args.ploidy)
+        cerr(f'[Writing to {args.outfile}]')
         save_dataset(ds, args.outfile)
 
     cerr(f'[Datastore written to {args.outfile}]')
