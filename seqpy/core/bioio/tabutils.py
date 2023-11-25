@@ -293,6 +293,11 @@ def generate_spec_df(a_list, column_name):
     colour12 = ['#1f78b4', '#33a02c', '#e31a1c', '#ff7f00', '#6a3d9a', '#b15928',
                 '#a6cee3', '#b2df8a', '#fb9a99', '#fdbf6f', '#cab2d6', '#ffff99']
 
+    # 13 colours from https://gist.github.com/xgfs/37436865b6616eebd09146007fea6c09
+    xgfs_normal13 = ["#ebac23", "#b80058", "#008cf9", "#006e00", "#00bbad", "#d163e6",
+                     "#b24502", "#ff9287", "#5954d6", "#00c6f8", "#878500", "#00a76c",
+                     "#bdbdbd"]
+
     # 20 colours from Vega
     colour20 = ["#1f77b4", "#aec7e8", "#ff7f0e", "#ffbb78", "#2ca02c", "#98df8a",
                 "#d62728", "#ff9896", "#9467bd", "#c5b0d5", "#8c564b", "#c49c94",
@@ -306,7 +311,7 @@ def generate_spec_df(a_list, column_name):
                 "#363638", "#c69085"]
 
     # if grouping <= 12, use colour12 otherwise use colour20
-    colour_set = colour12 if len(a_list) <= 12 else colour20
+    colour_set = xgfs_normal13 if len(a_list) <= 13 else colour20
     spec_df = pd.DataFrame({column_name: a_list, 'COLOUR': colour_set[:len(a_list)]})
 
     return spec_df
