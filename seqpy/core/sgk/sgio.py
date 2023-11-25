@@ -61,11 +61,11 @@ def load_dataset(inpath,
     return ds
 
 
-def save_dataset(datastore, outpath):
+def save_dataset(datastore, outpath, auto_rechunk=None):
 
     cerr(f'INFO: saving dataset to {outpath}')
     store = _get_zarr_storage(outpath, 'w')
-    sgkit.save_dataset(datastore, store)
+    sgkit.save_dataset(datastore, store, auto_rechunk=auto_rechunk)
     if hasattr(store, 'close'):
         store.close()
 
