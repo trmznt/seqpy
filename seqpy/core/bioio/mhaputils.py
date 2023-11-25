@@ -13,7 +13,8 @@ from seqpy import cerr
 from seqpy.core.bioio import tabutils
 
 
-def genotype_to_mhap(df, mhaplist, encode=False):
+def genotype_to_mhap(df, mhaplist, encode=False,
+                     fill_missing=False, missing_report=False, hets_report=False):
     """ Return a new pandas dataframe containing the microhaplotypes
         assembled from genotype dataframe, assuming that the dataframe
         contains single clonal sample or major genotype.
@@ -23,14 +24,16 @@ def genotype_to_mhap(df, mhaplist, encode=False):
     sample_df = pd.DataFrame({'SAMPLE': df.geno.get_samples()})
     allele_df = df.geno.get_alleles()
     error_mhaps = []
+    missing_allele_counts = {}
+    hets_allele_counts = {}
     dfs = [sample_df]
     for mhcode in mhaplist:
         poslist = mhcode_to_columns(mhcode)
 
         try:
             geno_df = allele_df.loc[:, poslist]
-        except KeyError:
-            error_mhaps.append(mhcode)
+        except KeyError as err:
+            error_mhaps.append(f'{mhcode}')
             continue
 
         # sane checking
@@ -39,10 +42,14 @@ def genotype_to_mhap(df, mhaplist, encode=False):
 
         # mark microhaplotypes that contain missing allele as missing mhap
         alleles = geno_df.iloc[:, 0].str.cat(geno_df.iloc[:, 1:], '')
+        if missing_report:
+            missing_allele_counts[mhcode] = alleles.str.count('X')
         missing_idx = alleles.str.contains('X')
         alleles[missing_idx] = 'X'
 
         # mark microhaplotypes that contain heterozygous allele as missing mhap
+        if hets_report:
+            hets_allele_counts[mhcode] = alleles.str.count('N')
         het_idx = alleles.str.contains('N')
         alleles[het_idx] = 'X'
         if het_idx.sum():
@@ -55,7 +62,8 @@ def genotype_to_mhap(df, mhaplist, encode=False):
 
     mhap_df = pd.concat(dfs, axis=1)
 
-    return mhap_df, error_mhaps
+    return (mhap_df, error_mhaps,
+            dict(missing=missing_allele_counts, hets=hets_allele_counts))
 
 
 def mhcode_to_columns(code):
