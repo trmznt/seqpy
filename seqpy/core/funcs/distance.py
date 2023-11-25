@@ -91,6 +91,7 @@ def decode_distmatrix(distm):
 
 def pairwise_distances(alleles):
     return sklearn.metrics.pairwise_distances(alleles, metric=calculate_diff_N,
+                                              n_jobs=-1,
                                               force_all_finite=True).astype(int)
 
 
