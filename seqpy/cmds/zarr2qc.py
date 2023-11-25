@@ -40,7 +40,7 @@ def zarr2qc(args):
                            ploidy=args.ploidy)
 
     depths = ds.call_AD[:, :, :2].sum(axis=2).compute()
-    missingness = depths < 5
+    missingness = depths < args.mindepth
 
     # sample missingness
     sample_miss = missingness.sum(axis=0)
