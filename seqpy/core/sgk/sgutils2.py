@@ -1,6 +1,7 @@
 
 import numpy as np
 import xarray as xr
+import pandas as pd
 
 from numba import jit, set_num_threads, config, guvectorize
 from dask.diagnostics import ProgressBar
@@ -161,5 +162,32 @@ def get_position_tuples(ds):
 
 def get_position_ids(ds):
     return [f'{c}:{p}' for c, p in get_position_tuples(ds)]
+
+
+def has_duplicate_positions(ds):
+    positions = list(zip(ds.variant_contig.values, ds.variant_position.values))
+    if len(positions) != len(set(positions)):
+        return True
+    return False
+
+
+def select_samples(ds, *, samples=None, samplefile=None):
+
+    if samplefile:
+        sample_df = pd.read_table(samplefile, header=None)
+        samples = sample_df.iloc[:, 0].to_list()
+
+    orig_N = ds.dims['samples']
+    ds = ds.sel(samples=ds.sample_id.isin(samples).values)
+    curr_N = ds.dims['samples']
+    if curr_N != len(samples):
+        curr_samples = set(ds.sample_id.values)
+        sel_samples = set(samples)
+        diff_samples = sel_samples - curr_samples
+        raise ValueError(f'Samples not found: {diff_samples}')
+    cerr(f'[Subsetting the samples from {orig_N} to {curr_N}]')
+
+    return ds
+
 
 # EOF
