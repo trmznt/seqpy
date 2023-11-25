@@ -123,7 +123,12 @@ class PositionAccessor(object):
     @staticmethod
     def _validate(df):
         # check if at least have 2-column
-        pass
+        if 'CHROM' in df.columns and 'POS' in df.columns:
+            if 'END' not in df.columns:
+                df['START'] = df['POS'] - 1
+                df['END'] = df['POS']
+        else:
+            raise ValueError('DataFrame does not have CHROM and POS')
 
     def point_tuples(self, as_list=False):
         # return a list of point position tuples [ (chrom, position), ...]
@@ -182,12 +187,15 @@ class PositionAccessor(object):
         # convert position to (contig, positions)
         # currently only handles last position (END), ie. point position
 
-        contigs = [dataset.contigs.index(c) for c in self._df['CHROM']]
+        #import IPython; IPython.embed()
+
+        contig_ids = dataset.contig_id.values.tolist()
+        contigs = [contig_ids.index(c) for c in self._df['CHROM']]
         positions = list(zip(contigs, self._df['END']))
 
         return dataset.set_index(
             variants=('variant_contig', 'variant_position')
-        ).sel(variants=positions)
+        ).sel(variants=positions).reset_index('variants').reset_coords(['variant_contig', 'variant_position'])
 
     def sel_tabular(self, tabframe):
         """ return a new tabular frame with variants based on positions """
