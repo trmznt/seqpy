@@ -3,7 +3,7 @@
 
 __copyright__ = "(c) 2024, Hidayat Trimarsanto <trimarsanto@gmail.com>"
 __license__ = "MIT"
-__version__ = '2024.05.23.01'
+__version__ = '2024.05.23.02'
 
 # this module provides subcommands, eg. PROG subcommand [options]
 
@@ -198,9 +198,10 @@ class SubCommands(object):
                 main()
 
         # warn the user that nothing is being done
-        raise RuntimeError('FATAL ERROR: SubCommands.run_main() must be '
-                           'supplied with either main or init_argparser '
-                           'argument')
+        else:
+            raise RuntimeError('FATAL ERROR: SubCommands.run_main() must be '
+                               'supplied with either main or init_argparser '
+                               'argument')
 
     def run_cmd(self, args: list[str]):
         """ this method will run module init_argparser() and main() """
