@@ -3,7 +3,7 @@
 
 __copyright__ = "(c) 2024, Hidayat Trimarsanto <trimarsanto@gmail.com>"
 __license__ = "MIT"
-__version__ = '2024.03.10'
+__version__ = '2024.05.23.01'
 
 # this module provides subcommands, eg. PROG subcommand [options]
 
@@ -14,7 +14,10 @@ import pathlib
 import importlib
 import argparse
 import argcomplete
+import logging
 from typing import Callable
+
+L = logging.getLogger(__name__)
 
 
 def _cout(msg: str):
@@ -76,6 +79,7 @@ class SubCommands(object):
         help_func: Callable | None = None
     ):
 
+        L.debug('initializing SubCommands class')
         self.allow_any_script = allow_any_script
         self.allow_shell = allow_shell
         self.greet = greet_func or self.generic_greet
@@ -136,10 +140,18 @@ class SubCommands(object):
             M = importlib.import_module(module)
             cmd_directory = pathlib.Path(M.__path__[0])
             cmd_files += cmd_directory.iterdir()
-        cmds = set(
-            [p.name.removesuffix('.py').replace('_', '-') for p in cmd_files]
-        ) - {'--init--', '--pycache--'}
-        return sorted(cmds)
+        cmds = []
+        for p in cmd_files:
+            if p.suffix != '.py':
+                continue
+            if p.name.startswith('_'):
+                continue
+            if '-' in p.name:
+                _cerr('Warning: found command module filename containing dash: '
+                      f'{p.name}')
+                continue
+            cmds.append(p.stem.replace('_', '-'))
+        return sorted(set(cmds))
 
     def show_commands(self):
         _cout('Available commands:')
@@ -185,12 +197,16 @@ class SubCommands(object):
             else:
                 main()
 
-        # do nothing here
+        # warn the user that nothing is being done
+        raise RuntimeError('FATAL ERROR: SubCommands.run_main() must be '
+                           'supplied with either main or init_argparser '
+                           'argument')
 
     def run_cmd(self, args: list[str]):
         """ this method will run module init_argparser() and main() """
 
         command = args[0].replace('-', '_')
+        L.debug("searching for module: %s", command)
         for module in self.modules:
             try:
                 module_name = f'{module}.{command}'
@@ -222,11 +238,12 @@ class SubCommands(object):
 
         with open(path) as fh:
             code = compile(fh.read(), path, 'exec')
-            _l = {'__name__': '__anyscript_main__'}
-            exec(code, globals(), _l)
+            exec(code, globals())
+            _g = globals()
+            _g['__name__'] = '__anyscript_main__'
             self.run_main(
-                _l.get('main', None),
-                _l.get('init_argparser', None),
+                _g.get('main', None),
+                _g.get('init_argparser', None),
                 args
             )
 
@@ -255,7 +272,7 @@ class SubCommands(object):
             import IPython
             IPython.embed()
 
-        if cmd == '-l':
+        elif cmd == '-l':
             # show available commands
             self.show_commands()
 
