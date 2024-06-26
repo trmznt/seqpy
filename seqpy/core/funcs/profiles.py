@@ -47,7 +47,7 @@ class SeqProfile(object):
             import numpy
             charset_len = len(self.char_set)
             max_seqlen = mseq.max_seqlen()
-            self.mat = numpy.empty( (max_seqlen, charset_len), numpy.float )
+            self.mat = numpy.empty( (max_seqlen, charset_len), float )
             self.mat.fill(self.apriori)
 
         cons = self.mat
@@ -72,8 +72,13 @@ class SeqProfile(object):
             if sum_pos < 1.0: continue    # no characters here
             cons[i] = cons[i]/sum_pos
 
-    def consensus(self, threshold = 0.5, ref=None, non_consensus = None):
-        """ return a consensus sequence """
+    def consensus(self, threshold = 0.5, ref=None, non_consensus = None,
+                  synthetic=False):
+        """ return a consensus sequence, set synthetic=True for generating
+            synthetic reference sequence (ie. replace deletion/dash to the
+            highest base)
+        """
+        ord_dash = ord('-')
 
         cons_seq = bytearray()
         cons = self.mat
@@ -87,6 +92,9 @@ class SeqProfile(object):
                     c = char_set[max_pos] + 32 if 64 < char_set[max_pos] < 91 else char_set[max_pos]
             else:
                 c = char_set[max_pos]
+            if synthetic and c == ord_dash:
+                # in synthetic mode, use 2nd highest in case this is dash
+                c = char_set[cons[i].argsort()[-2]]
             if ref and ref[i] == c:
                 c = ord('.')
             cons_seq.append( c )
@@ -106,7 +114,6 @@ class SeqProfile(object):
         return log_lk
 
 
-
 def seq_profile(char_set, ign_set, iupac_set, mseq, apriori=1e-10, normalize=True):
     prof = SeqProfile(char_set, ign_set, iupac_set, None, apriori)
     if mseq:
@@ -123,3 +130,4 @@ def aa_profile(mseq, apriori=1e-10, normalize=True, additional_set = b'', additi
     return seq_profile(AA_SET + additional_set, IGN_SET + additional_ignore, None, mseq, apriori, normalize)
 
 
+# EOF
