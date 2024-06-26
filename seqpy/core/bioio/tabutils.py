@@ -96,7 +96,7 @@ class MetaAccessor(object):
     def __init__(self, df):
         self._df = df
 
-    def join_to_samples(self, samples, columns, percenttag=False):
+    def join_to_samples(self, samples, columns, percenttag=False, how='inner'):
 
         actual_columns = []
         final_columns = []
@@ -120,7 +120,7 @@ class MetaAccessor(object):
         # use pandas' join mechanism
         sample_df = pd.DataFrame(dict(SAMPLE=samples))
         joined_df = sample_df.join(self._df.loc[:, actual_columns].set_index(actual_columns[0]),
-                                   on='SAMPLE', how='left')
+                                   on='SAMPLE', how=how)
 
         # rename columns if needed
         if any(rename_dict):
@@ -205,13 +205,16 @@ class GenoAccessor(object):
             positionlist.append((chrom, int(pos)))
         return positionlist
 
-
     def get_positionids(self):
         pass
 
     def get_alleles(self):
         """ return a dataframe with columns of [MARKER1, MARKER2, MARKER3, ...] """
+        return self.get_alleledf()
+
+    def get_alleledf(self):
         return self._alleledf
+
 
     def get_samples(self):
         """ return series of sample codes """
@@ -227,20 +230,38 @@ class GenoAccessor(object):
     def get_metacolumns(self):
         return self._metacolumns
 
-    def set_alleles(self, missings=None):
+    def set_missing_alleles(self, missings=None):
         if missings:
             for allele in missings:
                 self._alleledf.replace(allele, np.nan, inplace=True)
         return self._df
 
     def _process_sample_format(self):
-        # create ** new dataframe view ** without metadata row but still with metadata columns
+        # create ** new dataframe view ** without metadata row & columns, 
+
         metarows = self._df['SAMPLE'].str.startswith('%')
+        # metarows in pandas Series
+
         allelecolumns = self._df.columns.str.contains(':')
-        self._sampledf = self._df.loc[~metarows]
-        self._metarows = self._df.loc[metarows]
-        self._metacolumns = self._df.loc[~metarows, ~allelecolumns]
-        self._alleledf = self._df.loc[~metarows, allelecolumns]
+        # allelecolumns is numpy array
+
+        self._idx_samplerows = metarows.index[~metarows]
+        self._idx_metarows = metarows.index[metarows]
+
+        self._idx_allelecolumns = np.where(allelecolumns)[0]
+        self._idx_metacolumns = np.where(~allelecolumns)[0]
+
+        # self._sampledf = self._df.loc[~metarows]
+        # self._metarows = self._df.loc[metarows]
+        # self._metacolumns = self._df.loc[~metarows, ~allelecolumns]
+        # self._alleledf = self._df.loc[~metarows, allelecolumns]
+
+        self._sampledf = self._df.iloc[self._idx_samplerows]
+        self._metarows = self._df.iloc[self._idx_metarows]
+        self._metacolumns = self._df.iloc[self._idx_samplerows,
+                                          self._idx_metacolumns]
+        self._alleledf = self._df.iloc[self._idx_samplerows,
+                                      self._idx_allelecolumns]
 
     def _process_variant_format(self):
         # create new dataframe without metadata columns
@@ -270,9 +291,8 @@ class MicroHaplotypeAccessor(object):
 
 def dataframe_from_variants(dataset, variants):
 
-    from seqpy.core.sgk import sgutils2 as sgutils
-
-    position_ids = sgutils.get_position_ids(dataset)
+    from seqpy.core.sgk import sgio
+    position_ids = sgio.get_position_ids(dataset)
 
     # import IPython; IPython.embed()
 
@@ -288,6 +308,8 @@ def dataframe_from_variants(dataset, variants):
 
 def generate_spec_df(a_list, column_name):
     """ this function generate a spec df (currently color only, symbol/marker for future) """
+
+    import itertools
 
     # 12 colours from ColorBrewer2
     colour12 = ['#1f78b4', '#33a02c', '#e31a1c', '#ff7f00', '#6a3d9a', '#b15928',
@@ -310,9 +332,50 @@ def generate_spec_df(a_list, column_name):
                 "#4d285e", "#bf953c", "#cc9acd", "#536840", "#74372c", "#c9d19d",
                 "#363638", "#c69085"]
 
+    colour31 = '''
+173, 216, 230
+  0, 191, 255
+ 30, 144, 255
+  0,   0, 255
+  0,   0, 139
+ 72,  61, 139
+123, 104, 238
+138,  43, 226
+128,   0, 128
+218, 112, 214
+255,   0, 255
+255,  20, 147
+176,  48,  96
+220,  20,  60
+240, 128, 128
+255,  69,   0
+255, 165,   0
+244, 164,  96
+240, 230, 140
+128, 128,   0
+139,  69,  19
+255, 255,   0
+154, 205,  50
+124, 252,   0
+144, 238, 144
+143, 188, 143
+ 34, 139,  34
+  0, 255, 127
+  0, 255, 255
+  0, 139, 139
+128, 128, 128
+'''
+
     # if grouping <= 12, use colour12 otherwise use colour20
-    colour_set = xgfs_normal13 if len(a_list) <= 13 else colour20
-    spec_df = pd.DataFrame({column_name: a_list, 'COLOUR': colour_set[:len(a_list)]})
+    colour_cycle = itertools.cycle(xgfs_normal13 if len(a_list) <= 13 else colour20)
+    if len(a_list) > 20:
+        import colorcet as cc
+        # another option is https://github.com/taketwo/glasbey or
+        # manually from https://mokole.com/palette.html
+        colour_cycle = itertools.cycle(cc.b_glasbey_bw)
+    colour_set = [next(colour_cycle) for c in range(len(a_list))]
+
+    spec_df = pd.DataFrame({column_name: a_list, 'COLOUR': colour_set})
 
     return spec_df
 
