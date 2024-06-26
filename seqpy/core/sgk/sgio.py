@@ -1,12 +1,14 @@
 
 import os
-from seqpy import cerr
-
+from seqpy import cerr, cexit
+import pandas as pd
+import numpy as np
 
 try:
     import zarr.storage
     import sgkit
     import sgkit.io.vcf
+    import xarray as xr
 except ModuleNotFoundError:
     cerr('ERR: require properly installed sgkit with VCF capability')
 
@@ -92,5 +94,83 @@ def read_vcf(path,
     for v in ds.variables:
         ds[v].encoding.clear()
     return ds
+
+
+# -- utilities --
+
+
+def get_position_tuples(ds):
+    cerr('[Generating position labels...]')
+    return zip(np.array(ds.contig_id)[ds.variant_contig.values], ds.variant_position.values)
+
+
+def get_position_ids(ds):
+    return [f'{c}:{p}' for c, p in get_position_tuples(ds)]
+
+
+def has_duplicate_positions(ds):
+    positions = list(zip(ds.variant_contig.values, ds.variant_position.values))
+    if len(positions) != len(set(positions)):
+        return True
+    return False
+
+
+def select_samples(ds, *, samples=None, samplefile=None):
+
+    if samplefile:
+        sample_df = pd.read_table(samplefile, header=None)
+        samples = sample_df.iloc[:, 0].to_list()
+
+    orig_N = ds.dims['samples']
+    ds = ds.sel(samples=ds.sample_id.isin(samples).values)
+    curr_N = ds.dims['samples']
+    if curr_N != len(samples):
+        curr_samples = set(ds.sample_id.values)
+        sel_samples = set(samples)
+        diff_samples = sel_samples - curr_samples
+        raise ValueError(f'Samples not found: {diff_samples}')
+    cerr(f'[Subsetting the samples from {orig_N} to {curr_N}]')
+
+    return ds
+
+
+def prepare_dataset(ds_or_path, *,
+                    posfile=None,
+                    samplefile=None,
+                    metafile=None,
+                    max_alt_alleles=8,
+                    ploidy=2,
+                    duplicate_position_allowed=False):
+
+    from seqpy.core.bioio import posutils, tabutils
+
+    posdf = None
+    if posfile:
+        posdf = posutils.read_posfile(posfile)
+
+    if not isinstance(ds_or_path, xr.core.dataset.Dataset):
+        cerr(f'Loading dataset from {ds_or_path}')
+        ds = load_dataset(ds_or_path, fields=['INFO/*', 'FORMAT/GT', 'FORMAT/AD', 'FORMAT/DP'],
+                          max_alt_alleles=max_alt_alleles,
+                          ploidy=ploidy)
+
+    if not duplicate_position_allowed and has_duplicate_positions(ds):
+        cexit('ERROR: duplicate positions found! '
+              'Please normalize or filter the VCF/Zarr data first.')
+
+    if posdf is not None:
+        ds = posdf.pos.sel_dataset(ds)
+
+    if samplefile:
+        ds = select_samples(ds, samplefile=samplefile)
+
+    if metafile:
+        samples = ds.sample_id.values
+        sample_df, errs = tabutils.join_metafile(samples, metafile, percenttag=True)
+    else:
+        sample_df = None
+
+    return ds, sample_df
+
 
 # EOF

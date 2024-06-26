@@ -155,39 +155,4 @@ def get_alleles(func, dataset, hetratio=0.67, mindepth=5, minaltdepth=2, useGT=F
     return alleles.compute()
 
 
-def get_position_tuples(ds):
-    cerr('[Generating position labels...]')
-    return zip(np.array(ds.contig_id)[ds.variant_contig.values], ds.variant_position.values)
-
-
-def get_position_ids(ds):
-    return [f'{c}:{p}' for c, p in get_position_tuples(ds)]
-
-
-def has_duplicate_positions(ds):
-    positions = list(zip(ds.variant_contig.values, ds.variant_position.values))
-    if len(positions) != len(set(positions)):
-        return True
-    return False
-
-
-def select_samples(ds, *, samples=None, samplefile=None):
-
-    if samplefile:
-        sample_df = pd.read_table(samplefile, header=None)
-        samples = sample_df.iloc[:, 0].to_list()
-
-    orig_N = ds.dims['samples']
-    ds = ds.sel(samples=ds.sample_id.isin(samples).values)
-    curr_N = ds.dims['samples']
-    if curr_N != len(samples):
-        curr_samples = set(ds.sample_id.values)
-        sel_samples = set(samples)
-        diff_samples = sel_samples - curr_samples
-        raise ValueError(f'Samples not found: {diff_samples}')
-    cerr(f'[Subsetting the samples from {orig_N} to {curr_N}]')
-
-    return ds
-
-
 # EOF
