@@ -193,3 +193,12 @@ class multisequence(object):
             else:
                 for s in self:
                     del s[i]
+
+    def upper(self):
+        ''' upper-casing all sequences '''
+        for s in self:
+            s.upper()
+        return self
+
+
+# EOF

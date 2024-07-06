@@ -132,6 +132,10 @@ class biosequence(object):
             t += e
         return pos + t
 
+    def upper(self):
+        self.seq = self.seq.upper()
+        return self
+
 
 def list_gap(seqstr):
     """ return (gap_pos, gap_ext) """
