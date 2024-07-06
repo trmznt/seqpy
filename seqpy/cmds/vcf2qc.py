@@ -65,7 +65,7 @@ def vcf2qc(args):
         # for variant quality, store the stats directly
         CHROM.append(v.CHROM)
         POS.append(v.POS)
-        SAMPLES.append(v.num_called)
+        #SAMPLES.append(v.num_called)
         HOMREF.append(v.num_hom_ref)
         HOMALT.append(v.num_hom_alt)
         HETS.append(v.num_het)
@@ -82,7 +82,7 @@ def vcf2qc(args):
         'CHROM': CHROM,
         'POS': POS,
         'MISS': MISS,
-        'SAMPLES': SAMPLES,
+        'SAMPLES': sample_len,
         'HOMREF': HOMREF,
         'HOMALT': HOMALT,
         'HETS': HETS,
